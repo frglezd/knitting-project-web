@@ -9,7 +9,8 @@ HTML5, React y Tailwind CSS (vía CDN, sin paso de compilación).
 knitting-web-project/
 ├── index.html          # Punto de entrada: carga React, Tailwind y app.jsx
 ├── app.jsx             # Componentes React (header, catálogo, secciones)
-├── catalog.csv          # Datos del catálogo
+├── catalog.csv          # Datos del catálogo (demo)
+├── config.example.js    # Plantilla de configuración (copiar a config.js)
 └── assets/images/       # Imágenes ilustrativas de los productos (SVG)
 ```
 
@@ -24,6 +25,20 @@ cd knitting-web-project
 python3 -m http.server 8000
 # abre http://localhost:8000
 ```
+
+## Catálogo de producción vs. catálogo de demo
+
+`catalog.csv`, en el repo, es un catálogo de ejemplo para demos y
+desarrollo local. Para usar un catálogo distinto en producción (otra URL,
+otro fichero) sin modificar el repo:
+
+```bash
+cp config.example.js config.js
+```
+
+Edita `config.js` y cambia `CATALOG_URL` por la ruta o URL que corresponda.
+`config.js` está en `.gitignore`, así que nunca se sube al repositorio; si
+no existe (como en esta demo), `app.jsx` usa `catalog.csv` por defecto.
 
 ## El catálogo: CSV hoy, base de datos mañana
 

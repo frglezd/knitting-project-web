@@ -5,7 +5,10 @@ const { useState, useEffect, useMemo } = React;
 // API (por ejemplo GET /api/productos respaldada por SQLite/Postgres) sin
 // tocar el resto de la interfaz, siempre que la respuesta conserve estas
 // mismas columnas.
-const CATALOG_URL = "catalog.csv";
+//
+// CATALOG_URL se lee de config.js (gitignored) si existe, para poder usar
+// un catálogo distinto en producción sin tocar el repo. Ver config.example.js.
+const CATALOG_URL = (window.APP_CONFIG && window.APP_CONFIG.CATALOG_URL) || "catalog.csv";
 
 const UNIDAD_LABEL = {
   "100g": "100 g",
