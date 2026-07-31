@@ -1,0 +1,19 @@
+id,nombre,fabricante,categoria,imagen,precio,unidad_precio,descripcion
+1,Lana Merino Extrafina,Katia,Lana,assets/images/yarn-ball-red.svg,144.90,100g,"Lana 100% merino extrafina, suave e ideal para prendas delicadas."
+2,Lana Alpaca Suave,Drops Design,Lana,assets/images/yarn-ball-gray.svg,178.50,100g,"Mezcla de alpaca y lana, muy calida y ligera."
+3,Algodon Mercerizado,Rico Design,Lana,assets/images/yarn-ball-blue.svg,67.20,ovillo,"Algodon mercerizado de 50 g, perfecto para verano y amigurumis."
+4,Lana Merino y Seda,Malabrigo,Lana,assets/images/yarn-ball-purple.svg,260.40,100g,Combinacion de merino y seda con un brillo y tacto excepcionales.
+5,Lana Chunky XXL,Lion Brand,Lana,assets/images/yarn-ball-yellow.svg,207.90,ovillo,Lana super gruesa para tejer mantas y jerseis en pocas horas.
+6,Lana Reciclada Eco,Katia,Lana,assets/images/yarn-ball-green.svg,117.60,100g,"Fibra reciclada y sostenible, apta para toda la familia."
+7,Mohair con Seda,Drops Design,Lana,assets/images/yarn-ball-pink.svg,151.20,ovillo,"Hebra fina y aireada con un halo suave, ideal para combinar."
+8,Lana Fingering para Calcetines,Regia,Lana,assets/images/yarn-ball-teal.svg,228.90,100g,"Mezcla reforzada con poliamida, resistente al uso diario."
+9,Agujas de Tejer de Bambu (juego 5 pares),Prym,Agujas de tejer,assets/images/knitting-needles.svg,388.50,unidad,Juego de agujas rectas de bambu en distintos grosores.
+10,Agujas Circulares Intercambiables,ChiaoGoo,Agujas de tejer,assets/images/knitting-needles.svg,945.00,unidad,Set de puntas intercambiables de acero con cables flexibles.
+11,Ganchillo Ergonomico,Clover,Ganchillos,assets/images/crochet-hook.svg,193.20,unidad,Mango ergonomico antideslizante para sesiones largas de ganchillo.
+12,Set de Ganchillos de Aluminio,Prym,Ganchillos,assets/images/crochet-hook.svg,309.75,unidad,Set de 8 ganchillos de aluminio en distintos tamanos.
+13,Marcadores de Punto (set 20 uds),Clover,Accesorios,assets/images/stitch-markers.svg,132.30,unidad,Marcadores de colores para senalar puntos y patrones.
+14,Agujas Laneras para Rematar,Prym,Accesorios,assets/images/tapestry-needle.svg,94.50,unidad,Agujas de punta roma para rematar hilos y coser piezas.
+15,Bolsa Organizadora para Lana,Knit Pro,Accesorios,assets/images/yarn-bowl.svg,480.90,unidad,Bolsa con orificios pasahilos para tejer sin enredos.
+16,Botones de Madera Artesanales (set 6 uds),DMC,Accesorios,assets/images/buttons.svg,109.20,unidad,Botones de madera natural tallados a mano.
+17,Cuenco Dispensador de Lana,Knit Pro,Accesorios,assets/images/yarn-bowl.svg,417.90,unidad,Cuenco de ceramica con espiral guia-hilo.
+18,Contador de Filas,Clover,Accesorios,assets/images/row-counter.svg,79.80,unidad,Contador manual para llevar la cuenta de vueltas y filas.

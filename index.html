@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Punto y Lana — Tienda de lana y accesorios de tejido</title>
+<meta name="description" content="Lanas, hilos y accesorios de punto y ganchillo. Materiales de calidad para tus proyectos, con envío a toda la península." />
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🧶</text></svg>" />
+
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@500;600;700&family=Nunito+Sans:wght@400;600;700;800&display=swap" rel="stylesheet" />
+
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        fontFamily: {
+          display: ['"Fraunces"', 'serif'],
+          body: ['"Nunito Sans"', 'sans-serif'],
+        },
+        colors: {
+          terracota: {
+            50: '#fdf1ec', 100: '#fbe0d4', 300: '#e8a688', 500: '#c0392b', 600: '#a83226', 700: '#7a1f16',
+          },
+          musgo: {
+            50: '#eef2e9', 500: '#4d8f5b', 600: '#33613d',
+          },
+          crema: '#f7f5f2',
+        },
+      },
+    },
+  };
+</script>
+
+<script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+<script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+<script src="https://unpkg.com/papaparse@5.4.1/papaparse.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+<style>
+  body { font-family: 'Nunito Sans', sans-serif; }
+  .font-display { font-family: 'Fraunces', serif; }
+</style>
+</head>
+<body class="bg-crema text-stone-800">
+  <div id="root"></div>
+  <script type="text/babel" data-presets="react" src="app.jsx"></script>
+</body>
+</html>
