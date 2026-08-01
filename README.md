@@ -7,9 +7,14 @@ HTML5, React y Tailwind CSS (vía CDN, sin paso de compilación).
 
 ```
 knitting-web-project/
-├── index.html          # Punto de entrada: carga React, Tailwind y app.jsx
+├── index.html          # Punto de entrada público: carga React, Tailwind y app.jsx
 ├── app.jsx             # Componentes React (header, catálogo, secciones)
+├── admin.html            # Panel de administración (no enlazado desde el sitio público)
+├── admin.jsx              # Login + alta/edición/borrado de productos
 ├── catalog.csv          # Datos del catálogo (demo)
+├── schema.sql             # Esquema de la tabla products para Cloudflare D1
+├── wrangler.toml          # Configuración de Cloudflare Pages/D1
+├── functions/api/         # API (Cloudflare Pages Functions) que respalda admin.html
 ├── config.example.js    # Plantilla de configuración (copiar a config.js)
 └── assets/images/       # Imágenes ilustrativas de los productos (SVG)
 ```
@@ -29,39 +34,102 @@ python3 -m http.server 8000
 ## Catálogo de producción vs. catálogo de demo
 
 `catalog.csv`, en el repo, es un catálogo de ejemplo para demos y
-desarrollo local. Para usar un catálogo distinto en producción (otra URL,
-otro fichero) sin modificar el repo:
+desarrollo local — así es como funciona el sitio "de fábrica", sin pasos
+adicionales. En producción, el catálogo puede en cambio vivir en una base de
+datos (Cloudflare D1) y gestionarse desde `admin.html`. `config.js`
+(gitignored, ver `config.example.js`) decide cuál se usa:
 
 ```bash
 cp config.example.js config.js
 ```
 
-Edita `config.js` y cambia `CATALOG_URL` por la ruta o URL que corresponda.
-`config.js` está en `.gitignore`, así que nunca se sube al repositorio; si
-no existe (como en esta demo), `app.jsx` usa `catalog.csv` por defecto.
+- `API_BASE` sin definir (`null`, el valor por defecto): `app.jsx` usa
+  `catalog.csv` y `admin.html` muestra un aviso de "no configurado".
+- `API_BASE` definido (p. ej. `""` para mismo origen, o una URL completa):
+  el catálogo público se carga desde `GET {API_BASE}/api/products` y
+  `admin.html` queda operativo.
 
-## El catálogo: CSV hoy, base de datos mañana
+## Panel de administración (Cloudflare Pages + D1)
 
-Se pidió guardar el catálogo en un CSV ya que se espera que crezca y que
-en el futuro viva en una base de datos. `catalog.csv` usa estas columnas:
+`admin.html` no está enlazado desde la navegación pública, pero **eso no lo
+protege por sí solo** — cualquiera que conozca la URL puede abrirlo. La
+protección real es que todas las operaciones de escritura
+(`POST`/`PUT`/`DELETE` en `functions/api/`) exigen una cookie de sesión
+válida, emitida solo tras iniciar sesión con las credenciales de
+administrador. Es una única cuenta de administrador (no hay alta pública de
+usuarios), pensada para un solo gestor del catálogo.
+
+Se eligió Cloudflare Pages Functions + D1 en vez de un backend gestionado
+tipo Supabase porque los planes gratuitos de ese tipo de servicios suelen
+pausar el proyecto tras una semana de inactividad (hay que "despertarlo" a
+mano desde su panel) — y como el catálogo público también leería de esa
+misma base de datos en producción, una semana tranquila dejaría caído no
+solo el panel de administración sino la tienda para los clientes reales.
+D1 y Pages Functions son "serverless" (no hay servidor que se quede inactivo)
+y su capa gratuita no caduca por falta de uso.
+
+### Puesta en marcha
+
+1. Crea una cuenta de Cloudflare (gratuita) e instala Wrangler:
+   `npm install -g wrangler` (o usa `npx wrangler` sin instalarlo).
+2. `wrangler login`
+3. Crea la base de datos D1 y copia el `database_id` que te devuelva a
+   `wrangler.toml`:
+   ```bash
+   wrangler d1 create punto-y-lana
+   ```
+4. Crea la tabla `products`:
+   ```bash
+   wrangler d1 execute punto-y-lana --remote --file=schema.sql
+   ```
+5. Crea el proyecto de Pages y haz el primer despliegue (`wrangler pages
+   secret put` exige que el proyecto ya exista, así que este paso va antes
+   que el siguiente):
+   ```bash
+   wrangler pages deploy .
+   ```
+6. Define los secretos del panel de administración (tú eliges usuario y
+   contraseña; `SESSION_SECRET` puede ser cualquier cadena larga aleatoria):
+   ```bash
+   wrangler pages secret put ADMIN_USERNAME
+   wrangler pages secret put ADMIN_PASSWORD
+   wrangler pages secret put SESSION_SECRET
+   ```
+   Vuelve a desplegar (`wrangler pages deploy .`) para que la Function
+   recoja los secretos recién creados.
+7. En `config.js` (en la raíz del proyecto, junto a `index.html`), define
+   `API_BASE: ""`. `wrangler pages deploy .` sube lo que haya en disco —
+   incluido `config.js`, aunque esté en `.gitignore` — así que tiene que
+   estar así **antes** de desplegar, no después.
+
+   **No pongas aquí la URL de un despliegue concreto** (el
+   `https://<hash>.punto-y-lana.pages.dev` que imprime cada
+   `wrangler pages deploy`) — cada despliegue genera un hash distinto, y al
+   ser un dominio distinto al de la página que estás viendo, el navegador
+   bloquea la petición por CORS antes de que el usuario/contraseña lleguen
+   siquiera a comprobarse. `""` (mismo origen) evita ese problema porque
+   `admin.html` y la API siempre se sirven desde el dominio que sea que
+   estés visitando en cada momento.
+8. Abre `/admin.html`, inicia sesión y gestiona el catálogo.
+
+### Desarrollo local del panel
+
+`wrangler pages dev` ejecuta la API y una base de datos D1 local, sin tocar
+Cloudflare:
+
+```bash
+wrangler d1 execute punto-y-lana --local --file=schema.sql
+wrangler pages dev . --d1=DB=punto-y-lana
+```
+
+Las columnas del catálogo (tanto en `catalog.csv` como en la tabla
+`products`) son:
 
 `id, nombre, fabricante, categoria, imagen, precio, unidad_precio, descripcion`
 
 `unidad_precio` indica cómo se vende la referencia: `100g` (lanas que se
 cobran por cada 100 gramos), `ovillo` (precio fijo por ovillo/unidad de
 venta) o `unidad` (accesorios).
-
-Sugerencia para cuando el catálogo crezca: mantener estos mismos nombres
-de columna como nombres de campo en una tabla `productos` (SQLite o
-Postgres funcionan bien; Postgres si además quieres gestionar stock,
-pedidos o usuarios). Se puede exponer con un endpoint sencillo tipo
-`GET /api/productos` que devuelva JSON con esas mismas claves, y en
-`app.jsx` solo hay que cambiar la función `fetch("catalog.csv")` por
-`fetch("/api/productos")` — el resto de la interfaz no necesita tocarse.
-Si por ahora no quieres montar un backend propio, herramientas como
-Supabase o una hoja de cálculo publicada como API (p. ej. Google Sheets +
-Sheet2API) son un paso intermedio razonable antes de una base de datos
-completa.
 
 ## Imágenes de producto
 

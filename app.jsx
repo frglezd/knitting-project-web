@@ -1,14 +1,13 @@
 const { useState, useEffect, useMemo } = React;
 
-// El catálogo se sirve hoy desde catalog.csv. Cuando el número de
-// referencias crezca, este fetch puede sustituirse por una llamada a una
-// API (por ejemplo GET /api/productos respaldada por SQLite/Postgres) sin
-// tocar el resto de la interfaz, siempre que la respuesta conserve estas
-// mismas columnas.
-//
-// CATALOG_URL se lee de config.js (gitignored) si existe, para poder usar
-// un catálogo distinto en producción sin tocar el repo. Ver config.example.js.
+// Por defecto el catálogo se sirve desde catalog.csv (modo demo). Si
+// config.js (gitignored, ver config.example.js) define API_BASE, el
+// catálogo se carga en su lugar desde la API de Cloudflare Pages Functions
+// (GET {API_BASE}/api/products), que es también la que usa admin.html para
+// gestionar el catálogo en producción.
 const CATALOG_URL = (window.APP_CONFIG && window.APP_CONFIG.CATALOG_URL) || "catalog.csv";
+const API_BASE = window.APP_CONFIG && window.APP_CONFIG.API_BASE;
+const USE_API = API_BASE != null;
 
 const UNIDAD_LABEL = {
   "100g": "100 g",
@@ -172,6 +171,20 @@ function Catalogo() {
   const [categoriaActiva, setCategoriaActiva] = useState("Todos");
 
   useEffect(() => {
+    if (USE_API) {
+      fetch(`${API_BASE}/api/products`)
+        .then((res) => {
+          if (!res.ok) throw new Error("No se pudo cargar el catálogo");
+          return res.json();
+        })
+        .then((data) => {
+          setProductos(data);
+          setEstado("listo");
+        })
+        .catch(() => setEstado("error"));
+      return;
+    }
+
     fetch(CATALOG_URL)
       .then((res) => {
         if (!res.ok) throw new Error("No se pudo cargar el catálogo");

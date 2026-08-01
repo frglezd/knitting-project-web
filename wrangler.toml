@@ -1,0 +1,8 @@
+name = "punto-y-lana"
+pages_build_output_dir = "."
+compatibility_date = "2026-08-01"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "punto-y-lana"
+database_id = "abec79fb-16fa-41df-bf6d-44bf60cab7a9"

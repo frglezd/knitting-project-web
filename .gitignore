@@ -3,3 +3,8 @@
 .vscode/
 .idea/
 config.js
+.dev.vars
+.env
+.env.local
+.wrangler/
+node_modules/
