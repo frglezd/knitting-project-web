@@ -9,6 +9,28 @@ const CATALOG_URL = (window.APP_CONFIG && window.APP_CONFIG.CATALOG_URL) || "cat
 const API_BASE = window.APP_CONFIG && window.APP_CONFIG.API_BASE;
 const USE_API = API_BASE != null;
 
+// Texto de "Sobre nosotros" y del pie de página: valores por defecto para
+// la demo, sustituibles sin tocar el repo definiendo CONTENT (total o
+// parcialmente) en config.js. Ver config.example.js.
+const DEFAULT_CONTENT = {
+  nosotros:
+    "Punto y Lana nació como una pequeña mercería de barrio y hoy " +
+    "combinamos la tienda física con la venta online, sin perder el " +
+    "trato cercano. Trabajamos con fabricantes que cuidan el origen de " +
+    "sus fibras —desde merinos europeos hasta algodones y fibras " +
+    "recicladas— y seleccionamos a mano cada agujero, ganchillo y " +
+    "accesorio que llega a nuestras estanterías. Nuestro objetivo es " +
+    "que encuentres justo lo que tu proyecto necesita, con " +
+    "asesoramiento honesto y sin prisas.",
+  footerTagline: "Lanas, hilos y accesorios para tejer con cariño, en tienda y online.",
+  footerDireccion: "Calle Mayor 12, 28013 Madrid",
+  footerHorario: "Lunes a sábado, 10:00–20:00",
+  footerEmail: "hola@puntoylana.es",
+  footerTelefono: "+34 900 000 000",
+  footerDerechos: "Todos los derechos reservados.",
+};
+const CONTENT = { ...DEFAULT_CONTENT, ...((window.APP_CONFIG && window.APP_CONFIG.CONTENT) || {}) };
+
 const UNIDAD_LABEL = {
   "100g": "100 g",
   ovillo: "ovillo",
@@ -258,16 +280,7 @@ function Nosotros() {
     <section id="nosotros" className="bg-musgo-50 scroll-mt-16">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 py-16 text-center">
         <h2 className="font-display text-3xl font-semibold text-stone-800 mb-4">Sobre nosotros</h2>
-        <p className="text-stone-600 leading-relaxed">
-          Punto y Lana nació como una pequeña mercería de barrio y hoy
-          combinamos la tienda física con la venta online, sin perder el
-          trato cercano. Trabajamos con fabricantes que cuidan el origen de
-          sus fibras —desde merinos europeos hasta algodones y fibras
-          recicladas— y seleccionamos a mano cada agujero, ganchillo y
-          accesorio que llega a nuestras estanterías. Nuestro objetivo es
-          que encuentres justo lo que tu proyecto necesita, con
-          asesoramiento honesto y sin prisas.
-        </p>
+        <p className="text-stone-600 leading-relaxed">{CONTENT.nosotros}</p>
       </div>
     </section>
   );
@@ -279,23 +292,21 @@ function Footer() {
       <div className="max-w-6xl mx-auto px-4 sm:px-6 py-12 grid grid-cols-1 sm:grid-cols-3 gap-8">
         <div>
           <p className="font-display text-lg text-white font-semibold mb-2">🧶 Punto y Lana</p>
-          <p className="text-sm text-stone-400">
-            Lanas, hilos y accesorios para tejer con cariño, en tienda y online.
-          </p>
+          <p className="text-sm text-stone-400">{CONTENT.footerTagline}</p>
         </div>
         <div>
           <p className="font-semibold text-white mb-2">Visítanos</p>
-          <p className="text-sm text-stone-400">Calle Mayor 12, 28013 Madrid</p>
-          <p className="text-sm text-stone-400">Lunes a sábado, 10:00–20:00</p>
+          <p className="text-sm text-stone-400">{CONTENT.footerDireccion}</p>
+          <p className="text-sm text-stone-400">{CONTENT.footerHorario}</p>
         </div>
         <div>
           <p className="font-semibold text-white mb-2">Contacto</p>
-          <p className="text-sm text-stone-400">hola@puntoylana.es</p>
-          <p className="text-sm text-stone-400">+34 900 000 000</p>
+          <p className="text-sm text-stone-400">{CONTENT.footerEmail}</p>
+          <p className="text-sm text-stone-400">{CONTENT.footerTelefono}</p>
         </div>
       </div>
       <div className="border-t border-stone-700 py-4 text-center text-xs text-stone-500">
-        © {new Date().getFullYear()} Punto y Lana. Todos los derechos reservados.
+        © {new Date().getFullYear()} Punto y Lana. {CONTENT.footerDerechos}
       </div>
     </footer>
   );

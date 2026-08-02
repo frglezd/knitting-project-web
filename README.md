@@ -49,6 +49,28 @@ cp config.example.js config.js
   el catálogo público se carga desde `GET {API_BASE}/api/products` y
   `admin.html` queda operativo.
 
+## Textos de "Sobre nosotros" y del pie de página
+
+El párrafo de `Nosotros()`, la dirección, el horario, el contacto y la
+línea de derechos reservados del pie de página también viven por defecto
+como texto de demo en `app.jsx` (`DEFAULT_CONTENT`). Para usar el texto
+real del negocio sin tocar el repo, define `CONTENT` en `config.js` —
+solo hace falta incluir las claves que quieras sobrescribir, el resto
+sigue usando el texto de demo:
+
+```js
+window.APP_CONFIG = {
+  // ...CATALOG_URL, API_BASE...
+  CONTENT: {
+    nosotros: "Texto real de la tienda...",
+    footerDireccion: "Calle real, ciudad",
+    footerEmail: "contacto@tudominio.com",
+    footerTelefono: "+34 ...",
+    footerDerechos: "Todos los derechos reservados.",
+  },
+};
+```
+
 ## Panel de administración (Cloudflare Pages + D1)
 
 `admin.html` no está enlazado desde la navegación pública, pero **eso no lo
