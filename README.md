@@ -12,6 +12,7 @@ knitting-web-project/
 ├── admin.html            # Panel de administración (no enlazado desde el sitio público)
 ├── admin.jsx              # Login + alta/edición/borrado de productos
 ├── catalog.csv          # Datos del catálogo (demo)
+├── default-content.js    # Texto de demo (nombre, hero, nosotros, footer)
 ├── schema.sql             # Esquema de la tabla products para Cloudflare D1
 ├── wrangler.toml          # Configuración de Cloudflare Pages/D1
 ├── functions/api/         # API (Cloudflare Pages Functions) que respalda admin.html
@@ -51,17 +52,21 @@ cp config.example.js config.js
 
 ## Textos de "Sobre nosotros" y del pie de página
 
-El párrafo de `Nosotros()`, la dirección, el horario, el contacto y la
-línea de derechos reservados del pie de página también viven por defecto
-como texto de demo en `app.jsx` (`DEFAULT_CONTENT`). Para usar el texto
-real del negocio sin tocar el repo, define `CONTENT` en `config.js` —
-solo hace falta incluir las claves que quieras sobrescribir, el resto
-sigue usando el texto de demo:
+El nombre de la tienda (usado en el header y dos veces en el footer), el
+párrafo del hero, el párrafo de `Nosotros()`, la dirección, el horario, el
+contacto y la línea de derechos reservados del pie de página también viven
+por defecto como texto de demo en `default-content.js` (se envía con el
+repo, a diferencia de `config.js`). Para usar el texto real del negocio sin
+tocar ese fichero ni `app.jsx`, define `CONTENT` en `config.js` — solo hace
+falta incluir las claves que quieras sobrescribir, el resto sigue usando el
+texto de demo de `default-content.js`:
 
 ```js
 window.APP_CONFIG = {
   // ...CATALOG_URL, API_BASE...
   CONTENT: {
+    marca: "Nombre real de la tienda",
+    hero: "Texto real del hero...",
     nosotros: "Texto real de la tienda...",
     footerDireccion: "Calle real, ciudad",
     footerEmail: "contacto@tudominio.com",
@@ -70,6 +75,10 @@ window.APP_CONFIG = {
   },
 };
 ```
+
+`marca` sustituye "Punto y Lana" en el header y el footer, pero no en el
+`<title>` de `index.html`/`admin.html` ni en el nombre del repo — esos son
+HTML/documentación estáticos, se editan a mano si hace falta.
 
 ## Panel de administración (Cloudflare Pages + D1)
 
@@ -141,8 +150,32 @@ Cloudflare:
 
 ```bash
 wrangler d1 execute punto-y-lana --local --file=schema.sql
-wrangler pages dev . --d1=DB=punto-y-lana
+wrangler pages dev .
 ```
+
+Dos detalles que si se pasan por alto rompen el login o la API en local,
+con el mismo síntoma ("las credenciales no funcionan" / "no such table:
+products"):
+
+- **No añadas `--d1=DB=punto-y-lana`** a `wrangler pages dev`. Con ese
+  flag, `pages dev` crea una base de datos D1 local *distinta* de la que
+  acaba de rellenar `wrangler d1 execute --local` (cada una queda en un
+  fichero `.sqlite` distinto dentro de `.wrangler/state`), así que
+  `/api/products` falla con `no such table: products`. Sin el flag,
+  `pages dev` resuelve el binding `DB` desde `wrangler.toml` y usa la
+  misma base de datos que acabas de poblar.
+- **Crea `.dev.vars`** en la raíz del proyecto (está en `.gitignore`, así
+  que no sobrevive a un `git clone` ni a limpiar el repo — hay que
+  volver a crearlo en cada máquina/checkout nuevo):
+  ```
+  ADMIN_USERNAME=admin
+  ADMIN_PASSWORD=tu-contraseña-de-prueba
+  SESSION_SECRET=cualquier-cadena-larga-aleatoria
+  ```
+  Sin este fichero, `pages dev` arranca igualmente pero sin
+  `ADMIN_USERNAME`/`ADMIN_PASSWORD` definidos, así que el login rechaza
+  cualquier usuario y contraseña que escribas — no es un problema de las
+  credenciales en sí, es que no hay ninguna configurada.
 
 Las columnas del catálogo (tanto en `catalog.csv` como en la tabla
 `products`) son:
@@ -150,7 +183,7 @@ Las columnas del catálogo (tanto en `catalog.csv` como en la tabla
 `id, nombre, fabricante, categoria, imagen, precio, unidad_precio, descripcion`
 
 `unidad_precio` indica cómo se vende la referencia: `100g` (lanas que se
-cobran por cada 100 gramos), `ovillo` (precio fijo por ovillo/unidad de
+cobran por cada 100 gramos), `madeja` (precio fijo por madeja/unidad de
 venta) o `unidad` (accesorios).
 
 ## Imágenes de producto

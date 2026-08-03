@@ -3,7 +3,7 @@ const { useState, useEffect } = React;
 const API_BASE = window.APP_CONFIG && window.APP_CONFIG.API_BASE;
 const USE_API = API_BASE != null;
 
-const UNIDAD_OPTIONS = ["100g", "ovillo", "unidad"];
+const UNIDAD_OPTIONS = ["100g", "madeja", "unidad"];
 
 const EMPTY_PRODUCT = {
   nombre: "",
@@ -266,6 +266,7 @@ function AdminApp() {
           <table className="w-full text-sm">
             <thead>
               <tr className="text-left text-stone-500 border-b border-stone-200">
+                <th className="py-2 pr-2">#</th>
                 <th className="py-2 pr-2">Nombre</th>
                 <th className="py-2 pr-2">Categoría</th>
                 <th className="py-2 pr-2">Precio</th>
@@ -273,8 +274,9 @@ function AdminApp() {
               </tr>
             </thead>
             <tbody>
-              {productos.map((p) => (
+              {productos.map((p, indice) => (
                 <tr key={p.id} className="border-b border-stone-100">
+                  <td className="py-2 pr-2 text-stone-400">{indice + 1}</td>
                   <td className="py-2 pr-2">{p.nombre}</td>
                   <td className="py-2 pr-2">{p.categoria}</td>
                   <td className="py-2 pr-2">

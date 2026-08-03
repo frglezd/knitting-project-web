@@ -9,31 +9,18 @@ const CATALOG_URL = (window.APP_CONFIG && window.APP_CONFIG.CATALOG_URL) || "cat
 const API_BASE = window.APP_CONFIG && window.APP_CONFIG.API_BASE;
 const USE_API = API_BASE != null;
 
-// Texto de "Sobre nosotros" y del pie de página: valores por defecto para
-// la demo, sustituibles sin tocar el repo definiendo CONTENT (total o
-// parcialmente) en config.js. Ver config.example.js.
-const DEFAULT_CONTENT = {
-  nosotros:
-    "Punto y Lana nació como una pequeña mercería de barrio y hoy " +
-    "combinamos la tienda física con la venta online, sin perder el " +
-    "trato cercano. Trabajamos con fabricantes que cuidan el origen de " +
-    "sus fibras —desde merinos europeos hasta algodones y fibras " +
-    "recicladas— y seleccionamos a mano cada agujero, ganchillo y " +
-    "accesorio que llega a nuestras estanterías. Nuestro objetivo es " +
-    "que encuentres justo lo que tu proyecto necesita, con " +
-    "asesoramiento honesto y sin prisas.",
-  footerTagline: "Lanas, hilos y accesorios para tejer con cariño, en tienda y online.",
-  footerDireccion: "Calle Mayor 12, 28013 Madrid",
-  footerHorario: "Lunes a sábado, 10:00–20:00",
-  footerEmail: "hola@puntoylana.es",
-  footerTelefono: "+34 900 000 000",
-  footerDerechos: "Todos los derechos reservados.",
+// Texto del nombre de la tienda, del hero, de "Sobre nosotros" y del pie
+// de página: los valores por defecto viven en default-content.js (demo,
+// se envía con el repo); CONTENT en config.js (gitignored, ver
+// config.example.js) sobrescribe cualquier subconjunto de esas claves.
+const CONTENT = {
+  ...(window.DEFAULT_CONTENT || {}),
+  ...((window.APP_CONFIG && window.APP_CONFIG.CONTENT) || {}),
 };
-const CONTENT = { ...DEFAULT_CONTENT, ...((window.APP_CONFIG && window.APP_CONFIG.CONTENT) || {}) };
 
 const UNIDAD_LABEL = {
   "100g": "100 g",
-  ovillo: "ovillo",
+  madeja: "madeja",
   unidad: "unidad",
 };
 
@@ -61,7 +48,7 @@ function Header({ categorias, categoriaActiva, onSelectCategoria }) {
       <div className="max-w-6xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-between">
         <a href="#inicio" className="flex items-center gap-2">
           <span className="text-2xl">🧶</span>
-          <span className="font-display text-xl font-semibold text-terracota-600">Punto y Lana</span>
+          <span className="font-display text-xl font-semibold text-terracota-600">{CONTENT.marca}</span>
         </a>
 
         <nav className="hidden md:flex items-center gap-8 text-sm font-semibold text-stone-600">
@@ -104,16 +91,12 @@ function Hero() {
     <section id="inicio" className="relative overflow-hidden bg-gradient-to-b from-terracota-50 to-crema">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 py-16 sm:py-24 flex flex-col items-center text-center gap-6">
         <span className="uppercase tracking-widest text-xs font-bold text-terracota-600 bg-terracota-100 px-3 py-1 rounded-full">
-          Lanas · Hilos · Accesorios
+          Acrílicos · Hilos · Accesorios
         </span>
         <h1 className="font-display text-4xl sm:text-5xl font-semibold text-stone-800 max-w-2xl">
           Todo lo que necesitas para tejer con calma
         </h1>
-        <p className="text-stone-600 max-w-xl text-lg">
-          Seleccionamos lanas naturales, fibras recicladas y accesorios de
-          calidad para que cada punto y cada vuelta de ganchillo sean un
-          placer, ya sea tu primer proyecto o el número cien.
-        </p>
+        <p className="text-stone-600 max-w-xl text-lg">{CONTENT.hero}</p>
         <div className="flex flex-wrap justify-center gap-3 pt-2">
           <a
             href="#catalogo"
@@ -187,10 +170,26 @@ function ProductCard({ producto }) {
   );
 }
 
+function SearchBar({ valor, onChange }) {
+  return (
+    <div className="flex justify-center mb-6">
+      <input
+        type="search"
+        value={valor}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder="Buscar por nombre…"
+        aria-label="Buscar productos por nombre"
+        className="w-full max-w-sm border border-stone-200 rounded-full px-4 py-2 text-sm text-stone-700 focus:outline-none focus:ring-2 focus:ring-terracota-300"
+      />
+    </div>
+  );
+}
+
 function Catalogo() {
   const [productos, setProductos] = useState([]);
   const [estado, setEstado] = useState("cargando"); // cargando | listo | error
   const [categoriaActiva, setCategoriaActiva] = useState("Todos");
+  const [busqueda, setBusqueda] = useState("");
 
   useEffect(() => {
     if (USE_API) {
@@ -230,17 +229,22 @@ function Catalogo() {
   }, [productos]);
 
   const productosFiltrados = useMemo(() => {
-    if (categoriaActiva === "Todos") return productos;
-    return productos.filter((p) => p.categoria === categoriaActiva);
-  }, [productos, categoriaActiva]);
+    let resultado =
+      categoriaActiva === "Todos" ? productos : productos.filter((p) => p.categoria === categoriaActiva);
+    const termino = busqueda.trim().toLowerCase();
+    if (termino) {
+      resultado = resultado.filter((p) => (p.nombre || "").toLowerCase().includes(termino));
+    }
+    return resultado;
+  }, [productos, categoriaActiva, busqueda]);
 
   return (
     <section id="catalogo" className="max-w-6xl mx-auto px-4 sm:px-6 py-16 scroll-mt-16">
       <div className="text-center mb-10">
         <h2 className="font-display text-3xl font-semibold text-stone-800">Nuestro catálogo</h2>
         <p className="text-stone-500 mt-2">
-          Los ovillos se venden por unidad o por cada 100&nbsp;g, según la
-          referencia. El catálogo se irá ampliando con nuevas lanas y
+          Las madejas se venden por unidad o por cada 100&nbsp;g, según la
+          referencia. El catálogo se irá ampliando con nuevos acrílicos y
           accesorios.
         </p>
       </div>
@@ -259,16 +263,23 @@ function Catalogo() {
 
       {estado === "listo" && (
         <React.Fragment>
+          <SearchBar valor={busqueda} onChange={setBusqueda} />
           <CategoryFilter
             categorias={categorias}
             categoriaActiva={categoriaActiva}
             onSelectCategoria={setCategoriaActiva}
           />
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {productosFiltrados.map((producto) => (
-              <ProductCard key={producto.id} producto={producto} />
-            ))}
-          </div>
+          {productosFiltrados.length === 0 ? (
+            <p className="text-center text-stone-500">
+              No se encontraron productos que coincidan con tu búsqueda.
+            </p>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+              {productosFiltrados.map((producto) => (
+                <ProductCard key={producto.id} producto={producto} />
+              ))}
+            </div>
+          )}
         </React.Fragment>
       )}
     </section>
@@ -291,7 +302,7 @@ function Footer() {
     <footer id="contacto" className="bg-stone-800 text-stone-300 scroll-mt-16">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 py-12 grid grid-cols-1 sm:grid-cols-3 gap-8">
         <div>
-          <p className="font-display text-lg text-white font-semibold mb-2">🧶 Punto y Lana</p>
+          <p className="font-display text-lg text-white font-semibold mb-2">🧶 {CONTENT.marca}</p>
           <p className="text-sm text-stone-400">{CONTENT.footerTagline}</p>
         </div>
         <div>
@@ -306,7 +317,7 @@ function Footer() {
         </div>
       </div>
       <div className="border-t border-stone-700 py-4 text-center text-xs text-stone-500">
-        © {new Date().getFullYear()} Punto y Lana. {CONTENT.footerDerechos}
+        © {new Date().getFullYear()} {CONTENT.marca}. {CONTENT.footerDerechos}
       </div>
     </footer>
   );

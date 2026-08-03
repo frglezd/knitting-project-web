@@ -7,11 +7,13 @@ window.APP_CONFIG = {
   // catalog from the Cloudflare Pages Functions API instead of catalog.csv,
   // and to enable admin.html. Leave as null to keep using catalog.csv.
   API_BASE: null,
-  // Optional. Override any subset of the "Sobre nosotros" and footer text
-  // (address, hours, contact, rights line) without touching app.jsx.
-  // Fields left out keep the built-in demo copy. See DEFAULT_CONTENT in
-  // app.jsx for every available key.
+  // Optional. Override any subset of the store name, hero text, "Sobre
+  // nosotros" and footer text (address, hours, contact, rights line)
+  // without touching app.jsx. Fields left out keep the built-in demo
+  // copy. See default-content.js for every available key.
   CONTENT: {
+    // marca: "...",
+    // hero: "...",
     // nosotros: "...",
     // footerTagline: "...",
     // footerDireccion: "...",

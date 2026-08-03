@@ -37,7 +37,7 @@
 <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
 <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
 <script src="https://unpkg.com/papaparse@5.4.1/papaparse.min.js"></script>
-<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.8/babel.min.js"></script>
 
 <style>
   body { font-family: 'Nunito Sans', sans-serif; }
@@ -46,6 +46,7 @@
 </head>
 <body class="bg-crema text-stone-800">
   <div id="root"></div>
+  <script src="default-content.js"></script>
   <script src="config.js" onerror="console.info('config.js not found, using defaults from app.jsx')"></script>
   <script type="text/babel" data-presets="react" src="app.jsx"></script>
 </body>
