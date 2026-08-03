@@ -13,6 +13,7 @@ window.APP_CONFIG = {
   // copy. See default-content.js for every available key.
   CONTENT: {
     // marca: "...",
+    // titulo: "...", // <title> de la pestaña del navegador
     // hero: "...",
     // nosotros: "...",
     // footerTagline: "...",

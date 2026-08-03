@@ -3,6 +3,7 @@
 .vscode/
 .idea/
 config.js
+default-content-prod.js
 .dev.vars
 .env
 .env.local

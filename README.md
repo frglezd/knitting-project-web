@@ -53,19 +53,26 @@ cp config.example.js config.js
 ## Textos de "Sobre nosotros" y del pie de página
 
 El nombre de la tienda (usado en el header y dos veces en el footer), el
-párrafo del hero, el párrafo de `Nosotros()`, la dirección, el horario, el
-contacto y la línea de derechos reservados del pie de página también viven
-por defecto como texto de demo en `default-content.js` (se envía con el
-repo, a diferencia de `config.js`). Para usar el texto real del negocio sin
-tocar ese fichero ni `app.jsx`, define `CONTENT` en `config.js` — solo hace
-falta incluir las claves que quieras sobrescribir, el resto sigue usando el
-texto de demo de `default-content.js`:
+título de la pestaña del navegador, el párrafo del hero, el párrafo de
+`Nosotros()`, la dirección, el horario, el contacto y la línea de derechos
+reservados del pie de página viven por defecto como texto de demo en
+`default-content.js` (se envía con el repo, a diferencia de `config.js`).
+Hay dos formas de usar el texto real del negocio sin tocar `app.jsx`:
+
+1. **Fichero de contenido alternativo.** Duplica `default-content.js` (por
+   ejemplo a `default-content-prod.js`) con el texto real, y cambia el
+   `<script src="...">` correspondiente en `index.html` para que apunte a
+   ese fichero en vez de a `default-content.js`.
+2. **`CONTENT` en `config.js`.** Sobrescribe solo el subconjunto de claves
+   que quieras, el resto sigue usando el texto de demo (o el de
+   `default-content-prod.js`, si es el que está cargando `index.html`):
 
 ```js
 window.APP_CONFIG = {
   // ...CATALOG_URL, API_BASE...
   CONTENT: {
     marca: "Nombre real de la tienda",
+    titulo: "Nombre real — descripción corta",
     hero: "Texto real del hero...",
     nosotros: "Texto real de la tienda...",
     footerDireccion: "Calle real, ciudad",
@@ -76,9 +83,13 @@ window.APP_CONFIG = {
 };
 ```
 
-`marca` sustituye "Punto y Lana" en el header y el footer, pero no en el
-`<title>` de `index.html`/`admin.html` ni en el nombre del repo — esos son
-HTML/documentación estáticos, se editan a mano si hace falta.
+`marca` sustituye "Punto y Lana" en el header y el footer. `titulo`
+sustituye el `<title>` de la pestaña del navegador — el texto que hay
+escrito directamente en el `<title>` de `index.html` es solo el respaldo
+que se ve un instante antes de que `app.jsx` cargue y lo sobrescriba; no
+hace falta editarlo a mano salvo que también quieras cambiar ese respaldo
+inicial. El `<title>` de `admin.html` sí es totalmente estático (no lee
+`CONTENT`), igual que el nombre del repo.
 
 ## Panel de administración (Cloudflare Pages + D1)
 

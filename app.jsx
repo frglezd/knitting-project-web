@@ -17,6 +17,8 @@ const CONTENT = {
   ...(window.DEFAULT_CONTENT || {}),
   ...((window.APP_CONFIG && window.APP_CONFIG.CONTENT) || {}),
 };
+// document.title ya se fija en index.html (más rápido, antes de que carguen
+// Tailwind/React/Babel); CONTENT.titulo no se vuelve a usar aquí.
 
 const UNIDAD_LABEL = {
   "100g": "100 g",

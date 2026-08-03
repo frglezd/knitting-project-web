@@ -4,8 +4,24 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Punto y Lana — Tienda de lana y accesorios de tejido</title>
-<meta name="description" content="Lanas, hilos y accesorios de punto y ganchillo. Materiales de calidad para tus proyectos, con envío a toda la península." />
+<meta name="description" content="Madejas, hilos y accesorios de punto y ganchillo. Materiales de calidad para tus proyectos, con envío a toda la península." />
 <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🧶</text></svg>" />
+
+<!--
+  El <title> de arriba es solo el respaldo mientras esto carga: son los dos
+  primeros scripts de la página (antes de fuentes/Tailwind/React/Babel) a
+  propósito, para que el título real se aplique lo antes posible y se note
+  lo mínimo el cambio desde el texto de respaldo.
+-->
+<script src="default-content-prod.js"></script>
+<script src="config.js" onerror="console.info('config.js not found, using defaults from default-content-prod.js')"></script>
+<script>
+  (function () {
+    var contentOverride = window.APP_CONFIG && window.APP_CONFIG.CONTENT;
+    var titulo = (contentOverride && contentOverride.titulo) || (window.DEFAULT_CONTENT && window.DEFAULT_CONTENT.titulo);
+    if (titulo) document.title = titulo;
+  })();
+</script>
 
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -46,8 +62,6 @@
 </head>
 <body class="bg-crema text-stone-800">
   <div id="root"></div>
-  <script src="default-content.js"></script>
-  <script src="config.js" onerror="console.info('config.js not found, using defaults from app.jsx')"></script>
   <script type="text/babel" data-presets="react" src="app.jsx"></script>
 </body>
 </html>

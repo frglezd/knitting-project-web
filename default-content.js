@@ -5,6 +5,7 @@
 // config.example.js) sin tocar este fichero.
 window.DEFAULT_CONTENT = {
   marca: "Punto y Lana",
+  titulo: "Punto y Lana — Tienda de lana y accesorios de tejido",
   hero:
     "Seleccionamos acrílicos naturales, fibras recicladas y accesorios de " +
     "calidad para que cada punto y cada vuelta de ganchillo sean un " +
