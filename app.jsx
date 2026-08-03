@@ -49,8 +49,14 @@ function Header({ categorias, categoriaActiva, onSelectCategoria }) {
     <header className="sticky top-0 z-30 bg-crema/95 backdrop-blur border-b border-stone-200">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-between">
         <a href="#inicio" className="flex items-center gap-2">
-          <span className="text-2xl">🧶</span>
-          <span className="font-display text-xl font-semibold text-terracota-600">{CONTENT.marca}</span>
+          {CONTENT.logo ? (
+            <img src={CONTENT.logo} alt={CONTENT.marca} className="h-9 sm:h-10 w-auto" />
+          ) : (
+            <React.Fragment>
+              <span className="text-2xl">🧶</span>
+              <span className="font-display text-xl font-semibold text-terracota-600">{CONTENT.marca}</span>
+            </React.Fragment>
+          )}
         </a>
 
         <nav className="hidden md:flex items-center gap-8 text-sm font-semibold text-stone-600">

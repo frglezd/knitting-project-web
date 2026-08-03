@@ -5,6 +5,9 @@
 // config.example.js) sin tocar este fichero.
 window.DEFAULT_CONTENT = {
   marca: "Punto y Lana",
+  // Sin logo en la demo: el header cae al emoji + nombre de la tienda.
+  // Define una ruta (p. ej. "assets/images/logo.png") para usar una imagen.
+  logo: null,
   titulo: "Punto y Lana — Tienda de lana y accesorios de tejido",
   hero:
     "Seleccionamos acrílicos naturales, fibras recicladas y accesorios de " +

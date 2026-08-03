@@ -9,3 +9,4 @@ default-content-prod.js
 .env.local
 .wrangler/
 node_modules/
+assets/images/logo.png
