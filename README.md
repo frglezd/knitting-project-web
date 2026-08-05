@@ -120,10 +120,13 @@ y su capa gratuita no caduca por falta de uso.
    ```bash
    wrangler d1 create punto-y-lana
    ```
-4. Crea la tabla `products`:
+4. Crea las tablas (`fabricantes`, `categorias`, `products`):
    ```bash
    wrangler d1 execute punto-y-lana --remote --file=schema.sql
    ```
+   Si la base de datos **ya existe** con datos (por ejemplo, viene de antes
+   de que `fabricante`/`categoria` fueran tablas separadas), no vuelvas a
+   ejecutar `schema.sql` — usa las migraciones en su lugar, ver más abajo.
 5. Crea el proyecto de Pages y haz el primer despliegue (`wrangler pages
    secret put` exige que el proyecto ya exista, así que este paso va antes
    que el siguiente):
@@ -153,6 +156,23 @@ y su capa gratuita no caduca por falta de uso.
    `admin.html` y la API siempre se sirven desde el dominio que sea que
    estés visitando en cada momento.
 8. Abre `/admin.html`, inicia sesión y gestiona el catálogo.
+
+### Migraciones (actualizar un D1 que ya tiene datos)
+
+Los cambios de esquema sobre una base de datos que ya está en producción se
+manejan con `wrangler d1 migrations`, no reescribiendo `schema.sql` (que solo
+sirve para una base de datos nueva y vacía). Los ficheros viven en
+`migrations/`. Antes de aplicar una migración en remoto, pruébala en local:
+
+```bash
+wrangler d1 migrations apply punto-y-lana --local
+wrangler d1 migrations apply punto-y-lana --remote
+```
+
+`wrangler` lleva la cuenta de qué migraciones ya se aplicaron (tabla
+`d1_migrations`), así que cada una corre una sola vez por base de datos.
+Haz un respaldo (`wrangler d1 export punto-y-lana --remote --output
+backup.sql`) antes de aplicar una migración en remoto.
 
 ### Desarrollo local del panel
 

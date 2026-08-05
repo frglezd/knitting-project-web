@@ -10,3 +10,4 @@ default-content-prod.js
 .wrangler/
 node_modules/
 assets/images/logo.png
+*backup*sql

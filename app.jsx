@@ -126,24 +126,33 @@ function Hero() {
 
 function CategoryFilter({ categorias, categoriaActiva, onSelectCategoria }) {
   return (
-    <div className="flex flex-wrap gap-2 justify-center mb-10">
-      {categorias.map((cat) => {
-        const activa = cat === categoriaActiva;
-        return (
-          <button
-            key={cat}
-            onClick={() => onSelectCategoria(cat)}
-            className={
-              "px-4 py-2 rounded-full text-sm font-semibold border transition-colors " +
-              (activa
-                ? "bg-terracota-600 border-terracota-600 text-white"
-                : "bg-white border-stone-200 text-stone-600 hover:border-terracota-300")
-            }
-          >
-            {cat}
-          </button>
-        );
-      })}
+    <div className="mb-10">
+      <p className="text-center text-xs font-semibold uppercase tracking-wide text-stone-400 mb-3">
+        Filtrar por categoría
+      </p>
+      <div
+        role="group"
+        aria-label="Filtrar por categoría"
+        className="flex flex-wrap gap-2 justify-center"
+      >
+        {categorias.map((cat) => {
+          const activa = cat === categoriaActiva;
+          return (
+            <button
+              key={cat}
+              onClick={() => onSelectCategoria(cat)}
+              className={
+                "px-4 py-2 rounded-full text-sm font-semibold border transition-colors " +
+                (activa
+                  ? "bg-terracota-600 border-terracota-600 text-white"
+                  : "bg-white border-stone-200 text-stone-600 hover:border-terracota-300")
+              }
+            >
+              {cat}
+            </button>
+          );
+        })}
+      </div>
     </div>
   );
 }

@@ -5,10 +5,10 @@ function isValidProduct(body) {
     body &&
     typeof body.nombre === "string" &&
     body.nombre &&
-    typeof body.fabricante === "string" &&
-    body.fabricante &&
-    typeof body.categoria === "string" &&
-    body.categoria &&
+    Number.isInteger(Number(body.fabricante_id)) &&
+    Number(body.fabricante_id) > 0 &&
+    Number.isInteger(Number(body.categoria_id)) &&
+    Number(body.categoria_id) > 0 &&
     body.precio != null &&
     !Number.isNaN(Number(body.precio)) &&
     typeof body.unidad_precio === "string" &&
@@ -16,8 +16,17 @@ function isValidProduct(body) {
   );
 }
 
+const SELECT_PRODUCTS = `
+  SELECT p.id, p.nombre, p.fabricante_id, f.nombre AS fabricante,
+         p.categoria_id, c.nombre AS categoria, p.imagen, p.precio,
+         p.unidad_precio, p.descripcion
+  FROM products p
+  JOIN fabricantes f ON f.id = p.fabricante_id
+  JOIN categorias c ON c.id = p.categoria_id
+`;
+
 export async function onRequestGet({ env }) {
-  const { results } = await env.DB.prepare("SELECT * FROM products ORDER BY id").all();
+  const { results } = await env.DB.prepare(`${SELECT_PRODUCTS} ORDER BY p.id`).all();
   return new Response(JSON.stringify(results), {
     status: 200,
     headers: { "Content-Type": "application/json" },
@@ -45,11 +54,19 @@ export async function onRequestPost({ request, env }) {
     });
   }
 
-  const { nombre, fabricante, categoria, imagen, precio, unidad_precio, descripcion } = body;
+  const { nombre, fabricante_id, categoria_id, imagen, precio, unidad_precio, descripcion } = body;
   const result = await env.DB.prepare(
-    "INSERT INTO products (nombre, fabricante, categoria, imagen, precio, unidad_precio, descripcion) VALUES (?, ?, ?, ?, ?, ?, ?)"
+    "INSERT INTO products (nombre, fabricante_id, categoria_id, imagen, precio, unidad_precio, descripcion) VALUES (?, ?, ?, ?, ?, ?, ?)"
   )
-    .bind(nombre, fabricante, categoria, imagen || "", Number(precio), unidad_precio, descripcion || "")
+    .bind(
+      nombre,
+      Number(fabricante_id),
+      Number(categoria_id),
+      imagen || "",
+      Number(precio),
+      unidad_precio,
+      descripcion || ""
+    )
     .run();
 
   return new Response(JSON.stringify({ ok: true, id: result.meta.last_row_id }), {

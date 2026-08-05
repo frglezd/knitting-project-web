@@ -7,8 +7,8 @@ const UNIDAD_OPTIONS = ["100g", "madeja", "unidad"];
 
 const EMPTY_PRODUCT = {
   nombre: "",
-  fabricante: "",
-  categoria: "",
+  fabricante_id: "",
+  categoria_id: "",
   imagen: "",
   precio: "",
   unidad_precio: "100g",
@@ -94,8 +94,102 @@ function Login({ onLoggedIn }) {
   );
 }
 
-function ProductForm({ values, onChange, onSubmit, onCancel, submitLabel, error }) {
+function LookupSelect({ label, options, value, onChange, onCreate }) {
+  const [creando, setCreando] = useState(false);
+  const [nuevoNombre, setNuevoNombre] = useState("");
+  const [error, setError] = useState("");
+  const [guardando, setGuardando] = useState(false);
+
+  const handleSelect = (e) => {
+    if (e.target.value === "__nuevo__") {
+      setCreando(true);
+      return;
+    }
+    onChange(e.target.value);
+  };
+
+  const cancelarCreacion = () => {
+    setCreando(false);
+    setNuevoNombre("");
+    setError("");
+  };
+
+  const handleCrear = () => {
+    const nombre = nuevoNombre.trim();
+    if (!nombre) return;
+    setError("");
+    setGuardando(true);
+    onCreate(nombre)
+      .then((item) => {
+        onChange(String(item.id));
+        cancelarCreacion();
+      })
+      .catch((err) => setError(err.message))
+      .finally(() => setGuardando(false));
+  };
+
+  if (creando) {
+    return (
+      <div className="flex flex-col gap-1">
+        <div className="flex gap-2">
+          <input
+            className="border border-stone-300 rounded-lg px-3 py-2 flex-1"
+            placeholder={`Nuevo/a ${label.toLowerCase()}`}
+            value={nuevoNombre}
+            onChange={(e) => setNuevoNombre(e.target.value)}
+            autoFocus
+          />
+          <button
+            type="button"
+            onClick={handleCrear}
+            disabled={guardando}
+            className="bg-musgo-600 hover:bg-musgo-700 disabled:opacity-60 text-white font-semibold px-3 rounded-lg text-sm"
+          >
+            Guardar
+          </button>
+          <button type="button" onClick={cancelarCreacion} className="text-stone-500 text-sm px-2">
+            Cancelar
+          </button>
+        </div>
+        {error && <p className="text-xs text-terracota-600">{error}</p>}
+      </div>
+    );
+  }
+
+  return (
+    <select
+      className="border border-stone-300 rounded-lg px-3 py-2"
+      value={value}
+      onChange={handleSelect}
+      required
+    >
+      <option value="" disabled>
+        {label}
+      </option>
+      {options.map((o) => (
+        <option key={o.id} value={o.id}>
+          {o.nombre}
+        </option>
+      ))}
+      <option value="__nuevo__">+ Nuevo/a {label.toLowerCase()}…</option>
+    </select>
+  );
+}
+
+function ProductForm({
+  values,
+  onChange,
+  onSubmit,
+  onCancel,
+  submitLabel,
+  error,
+  fabricantes,
+  categorias,
+  onCrearFabricante,
+  onCrearCategoria,
+}) {
   const set = (field) => (e) => onChange({ ...values, [field]: e.target.value });
+  const setValue = (field) => (value) => onChange({ ...values, [field]: value });
 
   return (
     <form onSubmit={onSubmit} className="grid grid-cols-1 sm:grid-cols-2 gap-3 bg-white border border-stone-200 rounded-2xl p-5">
@@ -106,19 +200,19 @@ function ProductForm({ values, onChange, onSubmit, onCancel, submitLabel, error 
         onChange={set("nombre")}
         required
       />
-      <input
-        className="border border-stone-300 rounded-lg px-3 py-2"
-        placeholder="Fabricante"
-        value={values.fabricante}
-        onChange={set("fabricante")}
-        required
+      <LookupSelect
+        label="Fabricante"
+        options={fabricantes}
+        value={values.fabricante_id}
+        onChange={setValue("fabricante_id")}
+        onCreate={onCrearFabricante}
       />
-      <input
-        className="border border-stone-300 rounded-lg px-3 py-2"
-        placeholder="Categoría"
-        value={values.categoria}
-        onChange={set("categoria")}
-        required
+      <LookupSelect
+        label="Categoría"
+        options={categorias}
+        value={values.categoria_id}
+        onChange={setValue("categoria_id")}
+        onCreate={onCrearCategoria}
       />
       <input
         className="border border-stone-300 rounded-lg px-3 py-2"
@@ -176,12 +270,110 @@ function ProductForm({ values, onChange, onSubmit, onCancel, submitLabel, error 
   );
 }
 
+function ordenarPorNombre(lista) {
+  return [...lista].sort((a, b) => a.nombre.localeCompare(b.nombre));
+}
+
+function parseJsonError(res, fallback) {
+  return res.json().then(
+    (data) => {
+      throw new Error(data.error || fallback);
+    },
+    () => {
+      throw new Error(fallback);
+    }
+  );
+}
+
+function LookupManager({ title, items, onRename, onDelete }) {
+  const [editId, setEditId] = useState(null);
+  const [editValue, setEditValue] = useState("");
+  const [error, setError] = useState("");
+
+  const empezar = (item) => {
+    setEditId(item.id);
+    setEditValue(item.nombre);
+    setError("");
+  };
+
+  const cancelar = () => {
+    setEditId(null);
+    setEditValue("");
+    setError("");
+  };
+
+  const guardar = (id) => {
+    setError("");
+    onRename(id, editValue).then(cancelar).catch((err) => setError(err.message));
+  };
+
+  const eliminar = (item) => {
+    if (!window.confirm(`¿Eliminar "${item.nombre}"?`)) return;
+    setError("");
+    onDelete(item.id).catch((err) => setError(err.message));
+  };
+
+  return (
+    <div className="bg-white border border-stone-200 rounded-2xl p-5">
+      <h2 className="font-display text-base font-semibold text-stone-800 mb-3">{title}</h2>
+      <ul className="flex flex-col gap-2">
+        {items.map((item) => (
+          <li key={item.id} className="flex items-center gap-2">
+            {editId === item.id ? (
+              <>
+                <input
+                  className="border border-stone-300 rounded-lg px-2 py-1 flex-1 text-sm"
+                  value={editValue}
+                  onChange={(e) => setEditValue(e.target.value)}
+                  autoFocus
+                />
+                <button
+                  type="button"
+                  onClick={() => guardar(item.id)}
+                  className="text-musgo-600 hover:underline text-sm font-semibold"
+                >
+                  Guardar
+                </button>
+                <button type="button" onClick={cancelar} className="text-stone-500 text-sm">
+                  Cancelar
+                </button>
+              </>
+            ) : (
+              <>
+                <span className="flex-1 text-sm text-stone-700">{item.nombre}</span>
+                <button
+                  type="button"
+                  onClick={() => empezar(item)}
+                  className="text-musgo-600 hover:underline text-sm"
+                >
+                  Editar
+                </button>
+                <button
+                  type="button"
+                  onClick={() => eliminar(item)}
+                  className="text-terracota-600 hover:underline text-sm"
+                >
+                  Eliminar
+                </button>
+              </>
+            )}
+          </li>
+        ))}
+      </ul>
+      {error && <p className="text-xs text-terracota-600 mt-2">{error}</p>}
+    </div>
+  );
+}
+
 function AdminApp() {
   const [productos, setProductos] = useState([]);
+  const [fabricantes, setFabricantes] = useState([]);
+  const [categorias, setCategorias] = useState([]);
   const [cargando, setCargando] = useState(true);
   const [editId, setEditId] = useState(null);
   const [formValues, setFormValues] = useState(EMPTY_PRODUCT);
   const [formError, setFormError] = useState("");
+  const [mostrarGestion, setMostrarGestion] = useState(false);
 
   const cargarProductos = () => {
     setCargando(true);
@@ -191,14 +383,57 @@ function AdminApp() {
       .finally(() => setCargando(false));
   };
 
-  useEffect(cargarProductos, []);
+  useEffect(() => {
+    cargarProductos();
+    api("/api/fabricantes").then((res) => res.json()).then((data) => setFabricantes(ordenarPorNombre(data)));
+    api("/api/categorias").then((res) => res.json()).then((data) => setCategorias(ordenarPorNombre(data)));
+  }, []);
+
+  const crearValorLookup = (path, setLista) => (nombre) =>
+    api(path, { method: "POST", body: JSON.stringify({ nombre }) })
+      .then((res) => {
+        if (!res.ok) throw new Error("No se pudo guardar el valor");
+        return res.json();
+      })
+      .then((item) => {
+        setLista((prev) =>
+          prev.some((v) => v.id === item.id) ? prev : ordenarPorNombre([...prev, item])
+        );
+        return item;
+      });
+
+  const crearFabricante = crearValorLookup("/api/fabricantes", setFabricantes);
+  const crearCategoria = crearValorLookup("/api/categorias", setCategorias);
+
+  const renombrarValorLookup = (path, setLista) => (id, nombre) =>
+    api(`${path}/${id}`, { method: "PUT", body: JSON.stringify({ nombre }) })
+      .then((res) => {
+        if (!res.ok) return parseJsonError(res, "No se pudo renombrar");
+        return res.json();
+      })
+      .then((item) => {
+        setLista((prev) => ordenarPorNombre(prev.map((v) => (v.id === id ? item : v))));
+        cargarProductos();
+        return item;
+      });
+
+  const eliminarValorLookup = (path, setLista) => (id) =>
+    api(`${path}/${id}`, { method: "DELETE" }).then((res) => {
+      if (!res.ok) return parseJsonError(res, "No se pudo eliminar");
+      setLista((prev) => prev.filter((v) => v.id !== id));
+    });
+
+  const renombrarFabricante = renombrarValorLookup("/api/fabricantes", setFabricantes);
+  const eliminarFabricante = eliminarValorLookup("/api/fabricantes", setFabricantes);
+  const renombrarCategoria = renombrarValorLookup("/api/categorias", setCategorias);
+  const eliminarCategoria = eliminarValorLookup("/api/categorias", setCategorias);
 
   const empezarEdicion = (producto) => {
     setEditId(producto.id);
     setFormValues({
       nombre: producto.nombre || "",
-      fabricante: producto.fabricante || "",
-      categoria: producto.categoria || "",
+      fabricante_id: producto.fabricante_id ? String(producto.fabricante_id) : "",
+      categoria_id: producto.categoria_id ? String(producto.categoria_id) : "",
       imagen: producto.imagen || "",
       precio: producto.precio ?? "",
       unidad_precio: producto.unidad_precio || "100g",
@@ -257,7 +492,36 @@ function AdminApp() {
         onCancel={editId ? cancelarEdicion : null}
         submitLabel={editId ? "Guardar cambios" : "Añadir producto"}
         error={formError}
+        fabricantes={fabricantes}
+        categorias={categorias}
+        onCrearFabricante={crearFabricante}
+        onCrearCategoria={crearCategoria}
       />
+
+      <button
+        type="button"
+        onClick={() => setMostrarGestion((v) => !v)}
+        className="mt-4 text-sm font-semibold text-musgo-600 hover:underline"
+      >
+        {mostrarGestion ? "Ocultar gestión de fabricantes/categorías" : "Gestionar fabricantes y categorías"}
+      </button>
+
+      {mostrarGestion && (
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
+          <LookupManager
+            title="Fabricantes"
+            items={fabricantes}
+            onRename={renombrarFabricante}
+            onDelete={eliminarFabricante}
+          />
+          <LookupManager
+            title="Categorías"
+            items={categorias}
+            onRename={renombrarCategoria}
+            onDelete={eliminarCategoria}
+          />
+        </div>
+      )}
 
       <div className="mt-10">
         {cargando ? (
