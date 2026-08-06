@@ -23,6 +23,38 @@ function api(path, options = {}) {
   });
 }
 
+const MAX_UPLOAD_BYTES = 5 * 1024 * 1024;
+const MAX_UPLOAD_DIMENSION = 2000;
+const RESIZABLE_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
+
+function canvasToBlob(canvas, type, quality) {
+  return new Promise((resolve) => canvas.toBlob(resolve, type, quality));
+}
+
+async function resizeImageIfNeeded(file) {
+  if (file.size <= MAX_UPLOAD_BYTES || !RESIZABLE_TYPES.has(file.type)) return file;
+
+  const bitmap = await createImageBitmap(file);
+  const scale = Math.min(1, MAX_UPLOAD_DIMENSION / Math.max(bitmap.width, bitmap.height));
+  const width = Math.round(bitmap.width * scale);
+  const height = Math.round(bitmap.height * scale);
+
+  const canvas = document.createElement("canvas");
+  canvas.width = width;
+  canvas.height = height;
+  canvas.getContext("2d").drawImage(bitmap, 0, 0, width, height);
+
+  let quality = 0.85;
+  let blob = await canvasToBlob(canvas, "image/jpeg", quality);
+  while (blob.size > MAX_UPLOAD_BYTES && quality > 0.4) {
+    quality -= 0.15;
+    blob = await canvasToBlob(canvas, "image/jpeg", quality);
+  }
+
+  const name = file.name.replace(/\.[^.]+$/, "") + ".jpg";
+  return new File([blob], name, { type: "image/jpeg" });
+}
+
 function NotConfigured() {
   return (
     <div className="max-w-xl mx-auto px-6 py-24 text-center">
@@ -199,9 +231,12 @@ function ProductForm({
     if (!file) return;
     setUploadError("");
     setSubiendo(true);
-    const body = new FormData();
-    body.append("file", file);
-    fetch(`${API_BASE}/api/upload`, { method: "POST", credentials: "include", body })
+    resizeImageIfNeeded(file)
+      .then((subido) => {
+        const body = new FormData();
+        body.append("file", subido, subido.name || file.name);
+        return fetch(`${API_BASE}/api/upload`, { method: "POST", credentials: "include", body });
+      })
       .then((res) => {
         if (!res.ok) return parseJsonError(res, "No se pudo subir la imagen");
         return res.json();
