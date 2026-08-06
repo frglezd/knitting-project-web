@@ -156,6 +156,16 @@ y su capa gratuita no caduca por falta de uso.
    `admin.html` y la API siempre se sirven desde el dominio que sea que
    estés visitando en cada momento.
 8. Abre `/admin.html`, inicia sesión y gestiona el catálogo.
+9. (Opcional) Para subir fotos desde el panel en vez de solo pegar URLs,
+   crea el bucket R2 y hazlo público — el binding `IMAGES` y la variable
+   `R2_PUBLIC_URL` ya están en `wrangler.toml` apuntando a
+   `casita-inventory`, cambia el nombre si usas otro:
+   ```bash
+   wrangler r2 bucket create casita-inventory
+   wrangler r2 bucket dev-url enable casita-inventory
+   ```
+   Copia la URL `https://pub-<hash>.r2.dev` que imprime el segundo comando
+   en `R2_PUBLIC_URL` dentro de `wrangler.toml` y vuelve a desplegar.
 
 ### Migraciones (actualizar un D1 que ya tiene datos)
 
@@ -223,3 +233,12 @@ Las imágenes en `assets/images/` son ilustraciones SVG genéricas
 (ovillos de colores, agujas, ganchillos, etc.) a modo de marcador visual.
 Cuando tengas fotografías reales de cada artículo, sustitúyelas y
 actualiza la columna `imagen` del CSV con la ruta correspondiente.
+
+Desde el panel de administración también puedes subir una foto directamente
+(campo "URL de imagen" en el formulario de producto): el archivo se sube al
+bucket R2 `casita-inventory` vía `POST /api/upload` (requiere sesión) y el
+campo `imagen` se rellena solo con la URL pública resultante. Tipos
+permitidos: JPEG, PNG, WebP, GIF, SVG; tamaño máximo 5 MB. En
+`wrangler pages dev` local, R2 se emula en disco (`.wrangler/state`), así
+que la subida funciona pero la URL pública `pub-….r2.dev` no sirve el
+archivo hasta que despliegues — es el mismo patrón que D1 local vs. remoto.

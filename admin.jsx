@@ -188,8 +188,31 @@ function ProductForm({
   onCrearFabricante,
   onCrearCategoria,
 }) {
+  const [subiendo, setSubiendo] = useState(false);
+  const [uploadError, setUploadError] = useState("");
+
   const set = (field) => (e) => onChange({ ...values, [field]: e.target.value });
   const setValue = (field) => (value) => onChange({ ...values, [field]: value });
+
+  const handleFileUpload = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    setUploadError("");
+    setSubiendo(true);
+    const body = new FormData();
+    body.append("file", file);
+    fetch(`${API_BASE}/api/upload`, { method: "POST", credentials: "include", body })
+      .then((res) => {
+        if (!res.ok) return parseJsonError(res, "No se pudo subir la imagen");
+        return res.json();
+      })
+      .then((data) => onChange({ ...values, imagen: data.url }))
+      .catch((err) => setUploadError(err.message))
+      .finally(() => {
+        setSubiendo(false);
+        e.target.value = "";
+      });
+  };
 
   return (
     <form onSubmit={onSubmit} className="grid grid-cols-1 sm:grid-cols-2 gap-3 bg-white border border-stone-200 rounded-2xl p-5">
@@ -214,12 +237,25 @@ function ProductForm({
         onChange={setValue("categoria_id")}
         onCreate={onCrearCategoria}
       />
-      <input
-        className="border border-stone-300 rounded-lg px-3 py-2"
-        placeholder="Ruta de imagen (assets/images/…)"
-        value={values.imagen}
-        onChange={set("imagen")}
-      />
+      <div className="flex flex-col gap-1">
+        <input
+          className="border border-stone-300 rounded-lg px-3 py-2"
+          placeholder="URL de imagen (o sube un archivo)"
+          value={values.imagen}
+          onChange={set("imagen")}
+        />
+        <div className="flex items-center gap-2">
+          <input
+            type="file"
+            accept="image/*"
+            onChange={handleFileUpload}
+            disabled={subiendo}
+            className="text-xs text-stone-500"
+          />
+          {subiendo && <span className="text-xs text-stone-400">Subiendo…</span>}
+        </div>
+        {uploadError && <p className="text-xs text-terracota-600">{uploadError}</p>}
+      </div>
       <input
         className="border border-stone-300 rounded-lg px-3 py-2"
         placeholder="Precio"

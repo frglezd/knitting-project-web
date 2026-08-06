@@ -7,3 +7,10 @@ binding = "DB"
 database_name = "punto-y-lana"
 database_id = "abec79fb-16fa-41df-bf6d-44bf60cab7a9"
 migrations_dir = "migrations"
+
+[[r2_buckets]]
+binding = "IMAGES"
+bucket_name = "casita-inventory"
+
+[vars]
+R2_PUBLIC_URL = "https://pub-47187ccf87c14047ba59643954797c52.r2.dev"
