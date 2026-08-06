@@ -270,6 +270,39 @@ function ProductForm({
   );
 }
 
+const CSV_COLUMNS = [
+  "id",
+  "nombre",
+  "fabricante",
+  "categoria",
+  "imagen",
+  "precio",
+  "unidad_precio",
+  "descripcion",
+];
+
+function csvEscape(valor) {
+  const texto = valor == null ? "" : String(valor);
+  if (/[",\n]/.test(texto)) {
+    return `"${texto.replace(/"/g, '""')}"`;
+  }
+  return texto;
+}
+
+function exportarProductosCSV(productos) {
+  const filas = [
+    CSV_COLUMNS.join(","),
+    ...productos.map((p) => CSV_COLUMNS.map((col) => csvEscape(p[col])).join(",")),
+  ];
+  const blob = new Blob([filas.join("\n")], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const enlace = document.createElement("a");
+  enlace.href = url;
+  enlace.download = `catalogo_${new Date().toISOString().slice(0, 10)}.csv`;
+  enlace.click();
+  URL.revokeObjectURL(url);
+}
+
 function ordenarPorNombre(lista) {
   return [...lista].sort((a, b) => a.nombre.localeCompare(b.nombre));
 }
@@ -527,43 +560,54 @@ function AdminApp() {
         {cargando ? (
           <p className="text-stone-500">Cargando productos…</p>
         ) : (
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="text-left text-stone-500 border-b border-stone-200">
-                <th className="py-2 pr-2">#</th>
-                <th className="py-2 pr-2">Nombre</th>
-                <th className="py-2 pr-2">Categoría</th>
-                <th className="py-2 pr-2">Precio</th>
-                <th className="py-2"></th>
-              </tr>
-            </thead>
-            <tbody>
-              {productos.map((p, indice) => (
-                <tr key={p.id} className="border-b border-stone-100">
-                  <td className="py-2 pr-2 text-stone-400">{indice + 1}</td>
-                  <td className="py-2 pr-2">{p.nombre}</td>
-                  <td className="py-2 pr-2">{p.categoria}</td>
-                  <td className="py-2 pr-2">
-                    {p.precio} / {p.unidad_precio}
-                  </td>
-                  <td className="py-2 text-right whitespace-nowrap">
-                    <button
-                      onClick={() => empezarEdicion(p)}
-                      className="text-musgo-600 hover:underline mr-3"
-                    >
-                      Editar
-                    </button>
-                    <button
-                      onClick={() => handleDelete(p)}
-                      className="text-terracota-600 hover:underline"
-                    >
-                      Eliminar
-                    </button>
-                  </td>
+          <>
+            <div className="flex justify-end mb-3">
+              <button
+                type="button"
+                onClick={() => exportarProductosCSV(productos)}
+                className="text-sm font-semibold text-musgo-600 hover:underline"
+              >
+                Exportar CSV
+              </button>
+            </div>
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="text-left text-stone-500 border-b border-stone-200">
+                  <th className="py-2 pr-2">#</th>
+                  <th className="py-2 pr-2">Nombre</th>
+                  <th className="py-2 pr-2">Categoría</th>
+                  <th className="py-2 pr-2">Precio</th>
+                  <th className="py-2"></th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {productos.map((p, indice) => (
+                  <tr key={p.id} className="border-b border-stone-100">
+                    <td className="py-2 pr-2 text-stone-400">{indice + 1}</td>
+                    <td className="py-2 pr-2">{p.nombre}</td>
+                    <td className="py-2 pr-2">{p.categoria}</td>
+                    <td className="py-2 pr-2">
+                      {p.precio} / {p.unidad_precio}
+                    </td>
+                    <td className="py-2 text-right whitespace-nowrap">
+                      <button
+                        onClick={() => empezarEdicion(p)}
+                        className="text-musgo-600 hover:underline mr-3"
+                      >
+                        Editar
+                      </button>
+                      <button
+                        onClick={() => handleDelete(p)}
+                        className="text-terracota-600 hover:underline"
+                      >
+                        Eliminar
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </>
         )}
       </div>
     </div>
