@@ -1,0 +1,11 @@
+id,nombre,categoria,fabricante,precio,unidad_precio,imagen,descripcion
+1,Merino Wool Yarn - Charcoal,Yarn,Malabrigo,12.50,per skein,https://example.com/images/merino-charcoal.jpg,"100% merino wool, worsted weight, hand-dyed."
+2,Bamboo Circular Needles 16in,Needles,ChiaoGoo,8.75,per pair,https://example.com/images/bamboo-circular-16.jpg,"Smooth bamboo circular needles, size US 7."
+3,Stitch Markers Set,Accessories,Clover,5.99,per set of 20,https://example.com/images/stitch-markers.jpg,"Locking stitch markers in assorted colors."
+4,Alpaca Blend Yarn - Natural,Yarn,Cascade Yarns,15.20,per skein,https://example.com/images/alpaca-natural.jpg,"50% alpaca, 50% wool, DK weight."
+5,Interchangeable Needle Set,Needles,Knitter's Pride,45.00,per set,https://example.com/images/interchangeable-set.jpg,"9 pairs of interchangeable needle tips with cables."
+6,Row Counter,Accessories,KnitPro,3.50,per unit,https://example.com/images/row-counter.jpg,"Mechanical row counter, fits most needle sizes."
+7,Cotton Yarn - Sky Blue,Yarn,Lion Brand,6.25,per skein,https://example.com/images/cotton-sky-blue.jpg,"100% cotton, sport weight, machine washable."
+8,Blocking Mats Set,Tools,KnitIQ,24.99,per set of 9,https://example.com/images/blocking-mats.jpg,"Interlocking foam mats for blocking finished projects."
+9,Darning Needles Set,Accessories,Clover,4.10,per set of 6,https://example.com/images/darning-needles.jpg,"Assorted sizes of blunt-tip yarn needles."
+10,Chunky Wool Yarn - Oatmeal,Yarn,Wool and the Gang,18.00,per skein,https://example.com/images/chunky-oatmeal.jpg,"Super bulky 100% wool, great for quick projects."
