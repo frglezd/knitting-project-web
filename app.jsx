@@ -321,7 +321,7 @@ function CategoryTiles({ categoriaActiva, onSelectCategoria }) {
                 (activa ? "border-taupe ring-2 ring-taupe/40" : "border-arena")
               }
             >
-              <div className="aspect-[4/3] bg-crema">
+              <div className="aspect-video bg-crema">
                 <img src={tile.imagen} alt={tile.etiqueta} className="w-full h-full object-cover" loading="lazy" />
               </div>
               <div className="p-5 flex flex-col items-center gap-3">
