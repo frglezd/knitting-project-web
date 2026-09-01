@@ -3,8 +3,8 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Punto y Lana — Tienda de lana y accesorios de tejido</title>
-<meta name="description" content="Madejas, hilos y accesorios de punto y ganchillo. Materiales de calidad para tus proyectos, con envío a toda la península." />
+<title>La Casita del Estambre — Tienda de estambres y accesorios de tejido</title>
+<meta name="description" content="Estambres, hilazas y accesorios de punto y ganchillo. Materiales de calidad para tus proyectos, en tienda y online." />
 <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🧶</text></svg>" />
 
 <!--
@@ -25,7 +25,7 @@
 
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@500;600;700&family=Nunito+Sans:wght@400;600;700;800&display=swap" rel="stylesheet" />
+<link href="https://fonts.googleapis.com/css2?family=Lobster&family=Lora:wght@400;500;600;700&family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
 
 <script src="https://cdn.tailwindcss.com"></script>
 <script>
@@ -33,17 +33,17 @@
     theme: {
       extend: {
         fontFamily: {
-          display: ['"Fraunces"', 'serif'],
-          body: ['"Nunito Sans"', 'sans-serif'],
+          editorial: ['"Lora"', 'serif'],
+          ui: ['"Montserrat"', 'sans-serif'],
+          brand: ['"Lobster"', 'cursive'],
         },
         colors: {
-          terracota: {
-            50: '#fdf1ec', 100: '#fbe0d4', 300: '#e8a688', 500: '#c0392b', 600: '#a83226', 700: '#7a1f16',
-          },
-          musgo: {
-            50: '#eef2e9', 500: '#4d8f5b', 600: '#33613d',
-          },
-          crema: '#f7f5f2',
+          cafe: '#524132',
+          taupe: '#A68C74',
+          crema: '#F7F2ED',
+          arena: '#E1D2C5',
+          rosa: '#D8C0B0',
+          salvia: '#A9B2A5',
         },
       },
     },
@@ -56,11 +56,43 @@
 <script src="https://unpkg.com/@babel/standalone@7.29.8/babel.min.js"></script>
 
 <style>
-  body { font-family: 'Nunito Sans', sans-serif; }
-  .font-display { font-family: 'Fraunces', serif; }
+  body { font-family: 'Montserrat', sans-serif; }
+
+  /* Textura tipo "etiqueta de madera" para los botones principales, como en
+     el mockup: ruido sutil sobre el color taupe en vez de un relleno plano. */
+  .btn-madera {
+    position: relative;
+    background-color: #A68C74;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.5'/%3E%3C/svg%3E"),
+      linear-gradient(160deg, rgba(255, 255, 255, 0.14), rgba(0, 0, 0, 0.06));
+    background-blend-mode: overlay, normal;
+    background-size: 120px 120px, auto;
+    box-shadow: 0 2px 4px rgba(82, 65, 50, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.18),
+      inset 0 -1px 1px rgba(0, 0, 0, 0.15);
+  }
+  .btn-madera:hover {
+    background-color: #9c8069;
+  }
+
+  /* Misma textura, tono claro (arena) para botones secundarios y chips
+     activos, para que compartan el acabado "etiqueta de madera" sin competir
+     visualmente con los botones principales (taupe). */
+  .btn-madera-claro {
+    position: relative;
+    background-color: #E1D2C5;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.5'/%3E%3C/svg%3E"),
+      linear-gradient(160deg, rgba(255, 255, 255, 0.35), rgba(82, 65, 50, 0.04));
+    background-blend-mode: overlay, normal;
+    background-size: 120px 120px, auto;
+    box-shadow: 0 1px 3px rgba(82, 65, 50, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.4),
+      inset 0 -1px 1px rgba(82, 65, 50, 0.08);
+  }
+  .btn-madera-claro:hover {
+    background-color: #d6c4b3;
+  }
 </style>
 </head>
-<body class="bg-crema text-stone-800">
+<body class="bg-crema text-cafe">
   <div id="root"></div>
   <script type="text/babel" data-presets="react" src="app.jsx"></script>
 </body>

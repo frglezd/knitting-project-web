@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">
+  <g fill="none" stroke="#A68C74" stroke-width="2" stroke-linecap="round" opacity="0.55">
+    <path d="M15 15 C55 40, 85 65, 110 100 C130 125, 150 150, 185 180" />
+    <path d="M25 15 C60 55, 90 85, 130 130" />
+  </g>
+
+  <g fill="#A9B2A5" opacity="0.65">
+    <ellipse cx="55" cy="52" rx="14" ry="6" transform="rotate(35 55 52)" />
+    <ellipse cx="85" cy="80" rx="12" ry="5" transform="rotate(-40 85 80)" />
+    <ellipse cx="122" cy="118" rx="13" ry="5.5" transform="rotate(20 122 118)" />
+    <ellipse cx="158" cy="150" rx="10" ry="4.5" transform="rotate(-30 158 150)" />
+  </g>
+
+  <g opacity="0.8">
+    <g transform="translate(30,30) scale(0.9)">
+      <circle r="14" fill="#D8C0B0" transform="translate(0,-16)" />
+      <circle r="14" fill="#D8C0B0" transform="translate(15,-5)" />
+      <circle r="14" fill="#D8C0B0" transform="translate(9,13)" />
+      <circle r="14" fill="#D8C0B0" transform="translate(-9,13)" />
+      <circle r="14" fill="#D8C0B0" transform="translate(-15,-5)" />
+      <circle r="7" fill="#A68C74" />
+    </g>
+    <g transform="translate(95,90) scale(0.6)">
+      <circle r="14" fill="#A9B2A5" transform="translate(0,-16)" />
+      <circle r="14" fill="#A9B2A5" transform="translate(15,-5)" />
+      <circle r="14" fill="#A9B2A5" transform="translate(9,13)" />
+      <circle r="14" fill="#A9B2A5" transform="translate(-9,13)" />
+      <circle r="14" fill="#A9B2A5" transform="translate(-15,-5)" />
+      <circle r="7" fill="#E1D2C5" />
+    </g>
+    <g transform="translate(160,155) scale(0.4)">
+      <circle r="14" fill="#D8C0B0" transform="translate(0,-16)" />
+      <circle r="14" fill="#D8C0B0" transform="translate(15,-5)" />
+      <circle r="14" fill="#D8C0B0" transform="translate(9,13)" />
+      <circle r="14" fill="#D8C0B0" transform="translate(-9,13)" />
+      <circle r="14" fill="#D8C0B0" transform="translate(-15,-5)" />
+      <circle r="7" fill="#A68C74" />
+    </g>
+  </g>
+</svg>

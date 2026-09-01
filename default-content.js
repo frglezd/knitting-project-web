@@ -9,10 +9,21 @@ window.DEFAULT_CONTENT = {
   // Define una ruta (p. ej. "assets/images/logo.png") para usar una imagen.
   logo: null,
   titulo: "Punto y Lana — Tienda de lana y accesorios de tejido",
+  heroTitulo: "Bienvenidos a",
+  heroSubtitulo: "Hilos y puntos con calma",
   hero:
     "Seleccionamos acrílicos naturales, fibras recicladas y accesorios de " +
     "calidad para que cada punto y cada vuelta de ganchillo sean un " +
     "placer, ya sea tu primer proyecto o el número cien.",
+  redesFacebook: "https://www.facebook.com/",
+  redesInstagram: "https://www.instagram.com/",
+  instagramHandle: "@puntoylana",
+  testimonios: [
+    { nombre: "Clienta frecuente", texto: "Encontré exactamente la lana que buscaba y el trato fue buenísimo. Ya es mi mercería de cabecera." },
+    { nombre: "Clienta satisfecha", texto: "Me encanta la variedad de ganchillos y que siempre tienen algo nuevo. El equipo es súper atento cuando tengo dudas de un patrón." },
+    { nombre: "Clienta desde hace años", texto: "Compro aquí desde hace años. La calidad de los hilos es excelente y los precios muy justos." },
+  ],
+  blogProximamente: "Muy pronto compartiremos tutoriales, patrones e inspiración aquí. ¡Vuelve pronto!",
   nosotros:
     "Punto y Lana nació como una pequeña mercería de barrio y hoy " +
     "combinamos la tienda física con la venta online, sin perder el " +

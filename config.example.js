@@ -15,6 +15,8 @@ window.APP_CONFIG = {
     // marca: "...",
     // logo: "...", // ruta/URL de imagen; si se omite, el header usa emoji + marca
     // titulo: "...", // <title> de la pestaña del navegador
+    // heroTitulo: "...", // frase corta antes del nombre de la marca en el hero (p. ej. "Bienvenidos a")
+    // heroSubtitulo: "...", // subtitular del hero
     // hero: "...",
     // nosotros: "...",
     // footerTagline: "...",
@@ -23,5 +25,10 @@ window.APP_CONFIG = {
     // footerEmail: "...",
     // footerTelefono: "...",
     // footerDerechos: "...",
+    // redesFacebook: "...", // URL de la página de Facebook
+    // redesInstagram: "...", // URL del perfil de Instagram
+    // instagramHandle: "...", // @usuario mostrado en la sección de Instagram
+    // testimonios: [{ nombre: "...", texto: "..." }], // reseñas de clientas
+    // blogProximamente: "...", // texto de la sección "Blog" (placeholder)
   },
 };
