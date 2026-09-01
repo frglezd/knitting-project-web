@@ -579,7 +579,7 @@ function NosotrosYTestimonios() {
           <img
             src="assets/images/tienda-entrada-pizarra.jpg"
             alt={`Entrada de la tienda ${CONTENT.marca}, con letrero de bienvenida`}
-            className="w-full flex-1 rounded-2xl object-cover object-left"
+            className="w-full aspect-[910/435] rounded-2xl object-cover"
           />
           <div className="text-center md:text-left">
             <h3 className="font-brand text-3xl text-cafe mb-1">Síguenos en Instagram</h3>
