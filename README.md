@@ -131,8 +131,18 @@ y su capa gratuita no caduca por falta de uso.
    secret put` exige que el proyecto ya exista, así que este paso va antes
    que el siguiente):
    ```bash
-   wrangler pages deploy .
+   ./deploy.sh
    ```
+   **Usa siempre `./deploy.sh`, nunca `wrangler pages deploy .` directamente.**
+   `wrangler pages deploy .` sube TODO lo que haya en disco sin tener en
+   cuenta `.gitignore` — eso incluye `.dev.vars`, `backup/*.sql`,
+   `wrangler.toml` y cualquier otro archivo local, que quedarían servidos
+   públicamente en la URL del sitio (`tusitio.pages.dev/.dev.vars`, por
+   ejemplo). `deploy.sh` copia solo lo que el sitio realmente necesita
+   (`index.html`, `admin.html`, `app.jsx`, `admin.jsx`, `config.js`,
+   `default-content*.js`, `catalog.csv`, `assets/images/`, `functions/`) a
+   un directorio temporal antes de desplegar. Acepta los mismos flags que
+   `wrangler pages deploy` (p. ej. `./deploy.sh --branch=main`).
 6. Define los secretos del panel de administración (tú eliges usuario y
    contraseña; `SESSION_SECRET` puede ser cualquier cadena larga aleatoria):
    ```bash
@@ -140,21 +150,19 @@ y su capa gratuita no caduca por falta de uso.
    wrangler pages secret put ADMIN_PASSWORD
    wrangler pages secret put SESSION_SECRET
    ```
-   Vuelve a desplegar (`wrangler pages deploy .`) para que la Function
-   recoja los secretos recién creados.
+   Vuelve a desplegar (`./deploy.sh`) para que la Function recoja los
+   secretos recién creados.
 7. En `config.js` (en la raíz del proyecto, junto a `index.html`), define
-   `API_BASE: ""`. `wrangler pages deploy .` sube lo que haya en disco —
-   incluido `config.js`, aunque esté en `.gitignore` — así que tiene que
-   estar así **antes** de desplegar, no después.
+   `API_BASE: ""`. `deploy.sh` copia `config.js` tal como esté en disco —
+   así que tiene que estar así **antes** de desplegar, no después.
 
    **No pongas aquí la URL de un despliegue concreto** (el
-   `https://<hash>.punto-y-lana.pages.dev` que imprime cada
-   `wrangler pages deploy`) — cada despliegue genera un hash distinto, y al
-   ser un dominio distinto al de la página que estás viendo, el navegador
-   bloquea la petición por CORS antes de que el usuario/contraseña lleguen
-   siquiera a comprobarse. `""` (mismo origen) evita ese problema porque
-   `admin.html` y la API siempre se sirven desde el dominio que sea que
-   estés visitando en cada momento.
+   `https://<hash>.punto-y-lana.pages.dev` que imprime cada despliegue) —
+   cada despliegue genera un hash distinto, y al ser un dominio distinto al
+   de la página que estás viendo, el navegador bloquea la petición por CORS
+   antes de que el usuario/contraseña lleguen siquiera a comprobarse. `""`
+   (mismo origen) evita ese problema porque `admin.html` y la API siempre se
+   sirven desde el dominio que sea que estés visitando en cada momento.
 8. Abre `/admin.html`, inicia sesión y gestiona el catálogo.
 9. (Opcional) Para subir fotos desde el panel en vez de solo pegar URLs,
    crea el bucket R2 y hazlo público — el binding `IMAGES` y la variable
@@ -165,7 +173,18 @@ y su capa gratuita no caduca por falta de uso.
    wrangler r2 bucket dev-url enable casita-inventory
    ```
    Copia la URL `https://pub-<hash>.r2.dev` que imprime el segundo comando
-   en `R2_PUBLIC_URL` dentro de `wrangler.toml` y vuelve a desplegar.
+   en `R2_PUBLIC_URL` dentro de `wrangler.toml` y vuelve a desplegar
+   (`./deploy.sh`).
+
+   Si alguna vez se desplegó con `wrangler pages deploy .` directamente (o
+   con una versión de este proyecto anterior a `deploy.sh`), el sitio puede
+   estar sirviendo archivos sensibles en producción ahora mismo — compruébalo
+   con `curl -I https://tusitio.pages.dev/.dev.vars` (debería devolver el
+   *fallback* de la SPA, no `content-type: application/octet-stream`).
+   Si no es así, vuelve a desplegar con `./deploy.sh` y purga la caché de
+   Cloudflare (dashboard → Caching → Configuration → Purge Everything) — un
+   redespliegue limpio no invalida por sí solo las respuestas ya cacheadas en
+   el borde para esas rutas exactas.
 
 ### Migraciones (actualizar un D1 que ya tiene datos)
 
