@@ -280,17 +280,22 @@ function Hero() {
 }
 
 // Los 3 tiles reflejan literalmente las categorías del mockup, no una lista
-// derivada del catálogo: "Kits para Crochet" y "Accesorios" no existen todavía
-// como categorías reales (el catálogo actual solo tiene tipos de hilo), así
-// que esos dos filtran a una vista vacía hasta que se den de alta productos
-// de esas categorías desde el panel de administración — es intencional.
+// derivada del catálogo. "Accesorios" no existe todavía como categoría real,
+// así que ese tile filtra a una vista vacía hasta que se den de alta
+// productos de esa categoría desde el panel de administración — es
+// intencional. "Kits para Crochet" tampoco es una categoría real por sí
+// sola: agrupa varias categorías reales de herramientas/accesorios de
+// crochet y tejido (a diferencia de "Estambre", que sí es una categoría
+// real única).
+const KITS_CROCHET_CATEGORIAS = ["Suela", "Gancho", "Aguja", "Aros", "Telar", "Fundas"];
+
 const CATEGORY_TILES = [
   { categoria: "Estambre", etiqueta: "Estambres", boton: "Ver Estambres", imagen: "assets/images/cesta-ovillos-estanteria.jpg" },
   {
     categoria: "Kits para Crochet",
     etiqueta: "Kits para Crochet",
     boton: "Ver Kits",
-    imagen: "assets/images/crochet-hook.svg",
+    imagen: "assets/images/cesta-ovillos-agujas.jpg",
   },
   {
     categoria: "Accesorios",
@@ -454,8 +459,14 @@ function Catalogo({ categoriaActiva, onSelectCategoria }) {
   }, [productos]);
 
   const productosFiltrados = useMemo(() => {
-    let resultado =
-      categoriaActiva === "Todos" ? productos : productos.filter((p) => p.categoria === categoriaActiva);
+    let resultado;
+    if (categoriaActiva === "Todos") {
+      resultado = productos;
+    } else if (categoriaActiva === "Kits para Crochet") {
+      resultado = productos.filter((p) => KITS_CROCHET_CATEGORIAS.includes(p.categoria));
+    } else {
+      resultado = productos.filter((p) => p.categoria === categoriaActiva);
+    }
     const termino = busqueda.trim().toLowerCase();
     if (termino) {
       resultado = resultado.filter((p) => (p.nombre || "").toLowerCase().includes(termino));
