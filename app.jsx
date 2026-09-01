@@ -270,9 +270,9 @@ function Hero() {
           </div>
         </div>
         <img
-          src="assets/images/hero-basket.svg"
-          alt="Canasta con ovillos de estambre"
-          className="w-full max-w-md mx-auto"
+          src="assets/images/cesta-ovillos-ganchillos.jpg"
+          alt="Canasta con ovillos de estambre y ganchillos"
+          className="w-full max-w-md mx-auto rounded-2xl object-cover"
         />
       </div>
     </section>
@@ -285,7 +285,7 @@ function Hero() {
 // que esos dos filtran a una vista vacía hasta que se den de alta productos
 // de esas categorías desde el panel de administración — es intencional.
 const CATEGORY_TILES = [
-  { categoria: "Estambre", etiqueta: "Estambres", boton: "Ver Estambres", imagen: "assets/images/yarn-ball-red.svg" },
+  { categoria: "Estambre", etiqueta: "Estambres", boton: "Ver Estambres", imagen: "assets/images/cesta-ovillos-estanteria.jpg" },
   {
     categoria: "Kits para Crochet",
     etiqueta: "Kits para Crochet",
@@ -296,7 +296,7 @@ const CATEGORY_TILES = [
     categoria: "Accesorios",
     etiqueta: "Revistas y Accesorios",
     boton: "Ver Accesorios",
-    imagen: "assets/images/yarn-bowl.svg",
+    imagen: "assets/images/libros-crochet-mostrador.jpg",
   },
 ];
 
@@ -577,9 +577,9 @@ function NosotrosYTestimonios() {
 
         <div className="flex flex-col gap-6">
           <img
-            src="assets/images/tienda-interior.svg"
-            alt={`Interior de la tienda ${CONTENT.marca}`}
-            className="w-full flex-1 rounded-2xl object-cover"
+            src="assets/images/tienda-entrada-pizarra.jpg"
+            alt={`Entrada de la tienda ${CONTENT.marca}, con letrero de bienvenida`}
+            className="w-full flex-1 rounded-2xl object-cover object-left"
           />
           <div className="text-center md:text-left">
             <h3 className="font-brand text-3xl text-cafe mb-1">Síguenos en Instagram</h3>

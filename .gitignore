@@ -12,3 +12,4 @@ node_modules/
 assets/images/logo.png
 *backup*sql
 /backup/*
+assets/proposals/**
