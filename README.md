@@ -91,6 +91,20 @@ hace falta editarlo a mano salvo que también quieras cambiar ese respaldo
 inicial. El `<title>` de `admin.html` sí es totalmente estático (no lee
 `CONTENT`), igual que el nombre del repo.
 
+Con `API_BASE` definido (ver arriba) hay una tercera forma, la recomendada
+para cambios posteriores al primer despliegue: la pestaña **"Contenido del
+sitio"** de `admin.html` (junto a "Catálogo"), que guarda estos mismos
+campos —incluidos los testimonios y las fotos que no son de producto (hero,
+"Sobre nosotros" y las 3 fotos de categoría)— en D1 vía `GET`/`PUT
+/api/content`, sin tocar ficheros ni volver a desplegar. `GET /api/content`
+es público (lo necesita el sitio); `PUT` exige la misma sesión de
+administrador que el catálogo. Si D1 todavía no tiene fila guardada, tanto
+el sitio público como el formulario de "Contenido del sitio" siguen usando
+el texto estático de arriba (`default-content.js`/`default-content-prod.js`
++ `CONTENT` de `config.js`) como respaldo — la primera vez que alguien
+guarda desde esa pestaña, el formulario ya viene precargado con ese texto,
+así que ese primer guardado sirve también como migración a D1.
+
 ## Panel de administración (Cloudflare Pages + D1)
 
 `admin.html` no está enlazado desde la navegación pública, pero **eso no lo

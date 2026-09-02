@@ -30,5 +30,6 @@ window.APP_CONFIG = {
     // instagramHandle: "...", // @usuario mostrado en la sección de Instagram
     // testimonios: [{ nombre: "...", texto: "..." }], // reseñas de clientas
     // blogProximamente: "...", // texto de la sección "Blog" (placeholder)
+    // imagenes: { hero: "...", nosotros: "...", tileEstambre: "...", tileKits: "...", tileAccesorios: "..." },
   },
 };

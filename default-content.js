@@ -39,4 +39,13 @@ window.DEFAULT_CONTENT = {
   footerEmail: "hola@puntoylana.es",
   footerTelefono: "+34 900 000 000",
   footerDerechos: "Todos los derechos reservados.",
+  // Fotos del sitio fuera del catálogo (el catálogo tiene su propia imagen
+  // por producto). Rutas relativas a la raíz del sitio o URLs completas.
+  imagenes: {
+    hero: "assets/images/cesta-ovillos-ganchillos.jpg",
+    nosotros: "assets/images/tienda-entrada-pizarra.jpg",
+    tileEstambre: "assets/images/cesta-ovillos-estanteria.jpg",
+    tileKits: "assets/images/cesta-ovillos-agujas.jpg",
+    tileAccesorios: "assets/images/libros-crochet-mostrador.jpg",
+  },
 };

@@ -45,6 +45,8 @@
 </head>
 <body class="bg-crema text-stone-800">
   <div id="root"></div>
+  <script src="default-content.js"></script>
+  <script src="default-content-prod.js" onerror="console.info('default-content-prod.js not found, content form will start from demo defaults')"></script>
   <script src="config.js" onerror="console.info('config.js not found, admin.jsx will show setup instructions')"></script>
   <script type="text/babel" data-presets="react" src="admin.jsx"></script>
 </body>

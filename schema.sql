@@ -20,3 +20,8 @@ CREATE TABLE IF NOT EXISTS products (
   unidad_precio TEXT NOT NULL,
   descripcion TEXT
 );
+
+CREATE TABLE IF NOT EXISTS site_content (
+  id INTEGER PRIMARY KEY CHECK (id = 1),
+  content TEXT NOT NULL
+);

@@ -469,7 +469,268 @@ function LookupManager({ title, items, onRename, onDelete }) {
   );
 }
 
+const CONTENT_TEXT_FIELDS = [
+  { key: "marca", label: "Nombre de la marca" },
+  { key: "titulo", label: "Título de la pestaña del navegador" },
+  { key: "heroTitulo", label: 'Hero: frase corta (p. ej. "Bienvenidos a")' },
+  { key: "heroSubtitulo", label: "Hero: subtítulo" },
+  { key: "redesFacebook", label: "URL de Facebook" },
+  { key: "redesInstagram", label: "URL de Instagram" },
+  { key: "instagramHandle", label: "@usuario de Instagram" },
+  { key: "footerDireccion", label: "Dirección" },
+  { key: "footerHorario", label: "Horario" },
+  { key: "footerEmail", label: "Correo de contacto" },
+  { key: "footerTelefono", label: "Teléfono" },
+  { key: "footerDerechos", label: "Texto de derechos (pie de página)" },
+];
+
+const CONTENT_TEXTAREA_FIELDS = [
+  { key: "hero", label: "Texto del hero" },
+  { key: "nosotros", label: 'Texto de "Sobre nosotros"' },
+  { key: "footerTagline", label: "Frase corta del pie de página" },
+  { key: "blogProximamente", label: "Texto del placeholder del blog" },
+];
+
+const CONTENT_IMAGE_FIELDS = [
+  { key: "tileEstambre", label: "Foto: tile Estambres" },
+  { key: "tileKits", label: "Foto: tile Kits para Crochet" },
+  { key: "tileAccesorios", label: "Foto: tile Accesorios" },
+];
+
+function ImageField({ label, value, onChange }) {
+  const [subiendo, setSubiendo] = useState(false);
+  const [uploadError, setUploadError] = useState("");
+
+  const handleFileUpload = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    setUploadError("");
+    setSubiendo(true);
+    resizeImageIfNeeded(file)
+      .then((subido) => {
+        const body = new FormData();
+        body.append("file", subido, subido.name || file.name);
+        return fetch(`${API_BASE}/api/upload`, { method: "POST", credentials: "include", body });
+      })
+      .then((res) => {
+        if (!res.ok) return parseJsonError(res, "No se pudo subir la imagen");
+        return res.json();
+      })
+      .then((data) => onChange(data.url))
+      .catch((err) => setUploadError(err.message))
+      .finally(() => {
+        setSubiendo(false);
+        e.target.value = "";
+      });
+  };
+
+  return (
+    <div className="flex gap-3">
+      {value && (
+        <img
+          src={value}
+          alt=""
+          className="w-16 h-16 rounded-lg object-cover border border-stone-200 shrink-0"
+        />
+      )}
+      <div className="flex flex-col gap-1 flex-1">
+        <label className="text-sm font-semibold text-stone-600">{label}</label>
+        <input
+          className="border border-stone-300 rounded-lg px-3 py-2"
+          placeholder="URL de imagen (o sube un archivo)"
+          value={value || ""}
+          onChange={(e) => onChange(e.target.value)}
+        />
+        <div className="flex items-center gap-2">
+          <input
+            type="file"
+            accept="image/*"
+            onChange={handleFileUpload}
+            disabled={subiendo}
+            className="text-xs text-stone-500"
+          />
+          {subiendo && <span className="text-xs text-stone-400">Subiendo…</span>}
+        </div>
+        {uploadError && <p className="text-xs text-terracota-600">{uploadError}</p>}
+      </div>
+    </div>
+  );
+}
+
+function ContentSettings() {
+  const [valores, setValores] = useState(() => ({
+    ...(window.DEFAULT_CONTENT || {}),
+    ...((window.APP_CONFIG && window.APP_CONFIG.CONTENT) || {}),
+  }));
+  const [cargando, setCargando] = useState(true);
+  const [guardando, setGuardando] = useState(false);
+  const [error, setError] = useState("");
+  const [guardado, setGuardado] = useState(false);
+
+  useEffect(() => {
+    api("/api/content")
+      .then((res) => res.json())
+      .then((data) => {
+        if (data) setValores((v) => ({ ...v, ...data }));
+      })
+      .finally(() => setCargando(false));
+  }, []);
+
+  const set = (key) => (e) => {
+    setGuardado(false);
+    setValores((v) => ({ ...v, [key]: e.target.value }));
+  };
+
+  const setImagen = (key) => (url) => {
+    setGuardado(false);
+    setValores((v) => ({ ...v, imagenes: { ...v.imagenes, [key]: url } }));
+  };
+
+  const setLogo = (url) => {
+    setGuardado(false);
+    setValores((v) => ({ ...v, logo: url }));
+  };
+
+  const setTestimonio = (indice, campo) => (e) => {
+    setGuardado(false);
+    setValores((v) => ({
+      ...v,
+      testimonios: v.testimonios.map((t, i) => (i === indice ? { ...t, [campo]: e.target.value } : t)),
+    }));
+  };
+
+  const agregarTestimonio = () => {
+    setGuardado(false);
+    setValores((v) => ({ ...v, testimonios: [...(v.testimonios || []), { nombre: "", texto: "" }] }));
+  };
+
+  const eliminarTestimonio = (indice) => {
+    setGuardado(false);
+    setValores((v) => ({ ...v, testimonios: v.testimonios.filter((_, i) => i !== indice) }));
+  };
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    setError("");
+    setGuardado(false);
+    setGuardando(true);
+    api("/api/content", { method: "PUT", body: JSON.stringify(valores) })
+      .then((res) => {
+        if (!res.ok) return parseJsonError(res, "No se pudo guardar el contenido");
+        setGuardado(true);
+      })
+      .catch((err) => setError(err.message))
+      .finally(() => setGuardando(false));
+  };
+
+  if (cargando) {
+    return <p className="text-stone-500">Cargando contenido…</p>;
+  }
+
+  return (
+    <form onSubmit={handleSubmit} className="flex flex-col gap-6">
+      <div className="bg-white border border-stone-200 rounded-2xl p-5 grid grid-cols-1 sm:grid-cols-2 gap-3">
+        {CONTENT_TEXT_FIELDS.map(({ key, label }) => (
+          <div key={key} className="flex flex-col gap-1">
+            <label className="text-sm font-semibold text-stone-600">{label}</label>
+            <input
+              className="border border-stone-300 rounded-lg px-3 py-2"
+              value={valores[key] || ""}
+              onChange={set(key)}
+            />
+          </div>
+        ))}
+      </div>
+
+      <div className="bg-white border border-stone-200 rounded-2xl p-5 flex flex-col gap-3">
+        {CONTENT_TEXTAREA_FIELDS.map(({ key, label }) => (
+          <div key={key} className="flex flex-col gap-1">
+            <label className="text-sm font-semibold text-stone-600">{label}</label>
+            <textarea
+              className="border border-stone-300 rounded-lg px-3 py-2"
+              value={valores[key] || ""}
+              onChange={set(key)}
+              rows={3}
+            />
+          </div>
+        ))}
+      </div>
+
+      <div className="bg-white border border-stone-200 rounded-2xl p-5">
+        <h3 className="font-display text-lg font-semibold text-stone-800 mb-3">Imágenes del sitio</h3>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <ImageField label="Logo" value={valores.logo} onChange={setLogo} />
+          <ImageField label="Foto del hero" value={valores.imagenes && valores.imagenes.hero} onChange={setImagen("hero")} />
+          <ImageField
+            label='Foto de "Sobre nosotros"'
+            value={valores.imagenes && valores.imagenes.nosotros}
+            onChange={setImagen("nosotros")}
+          />
+          {CONTENT_IMAGE_FIELDS.map(({ key, label }) => (
+            <ImageField
+              key={key}
+              label={label}
+              value={valores.imagenes && valores.imagenes[key]}
+              onChange={setImagen(key)}
+            />
+          ))}
+        </div>
+      </div>
+
+      <div className="bg-white border border-stone-200 rounded-2xl p-5">
+        <h3 className="font-display text-lg font-semibold text-stone-800 mb-3">Testimonios</h3>
+        <div className="flex flex-col gap-3">
+          {(valores.testimonios || []).map((t, i) => (
+            <div key={i} className="flex flex-col sm:flex-row gap-2 sm:items-start">
+              <input
+                className="border border-stone-300 rounded-lg px-3 py-2 sm:w-48"
+                placeholder="Nombre"
+                value={t.nombre}
+                onChange={setTestimonio(i, "nombre")}
+              />
+              <textarea
+                className="border border-stone-300 rounded-lg px-3 py-2 flex-1"
+                placeholder="Texto"
+                value={t.texto}
+                onChange={setTestimonio(i, "texto")}
+                rows={2}
+              />
+              <button
+                type="button"
+                onClick={() => eliminarTestimonio(i)}
+                className="text-sm text-terracota-600 hover:underline self-start"
+              >
+                Eliminar
+              </button>
+            </div>
+          ))}
+          <button
+            type="button"
+            onClick={agregarTestimonio}
+            className="self-start text-sm font-semibold text-musgo-600 hover:underline"
+          >
+            + Añadir testimonio
+          </button>
+        </div>
+      </div>
+
+      {error && <p className="text-sm text-terracota-600">{error}</p>}
+      {guardado && !guardando && <p className="text-sm text-musgo-600">Guardado.</p>}
+      <div>
+        <button
+          type="submit"
+          disabled={guardando}
+          className="bg-terracota-600 hover:bg-terracota-700 text-white font-semibold px-4 py-2 rounded-lg transition-colors disabled:opacity-60"
+        >
+          {guardando ? "Guardando…" : "Guardar cambios"}
+        </button>
+      </div>
+    </form>
+  );
+}
+
 function AdminApp() {
+  const [vista, setVista] = useState("catalogo"); // catalogo | contenido
   const [productos, setProductos] = useState([]);
   const [fabricantes, setFabricantes] = useState([]);
   const [categorias, setCategorias] = useState([]);
@@ -577,10 +838,8 @@ function AdminApp() {
 
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 py-10">
-      <div className="flex items-center justify-between mb-8">
-        <h1 className="font-display text-2xl font-semibold text-stone-800">
-          Administración del catálogo
-        </h1>
+      <div className="flex items-center justify-between mb-4">
+        <h1 className="font-display text-2xl font-semibold text-stone-800">Administración</h1>
         <button
           onClick={handleLogout}
           className="text-sm font-semibold text-stone-500 hover:text-terracota-600"
@@ -589,6 +848,33 @@ function AdminApp() {
         </button>
       </div>
 
+      <div className="flex gap-2 mb-8 border-b border-stone-200">
+        <button
+          type="button"
+          onClick={() => setVista("catalogo")}
+          className={
+            "px-3 py-2 text-sm font-semibold border-b-2 -mb-px transition-colors " +
+            (vista === "catalogo" ? "border-terracota-600 text-terracota-600" : "border-transparent text-stone-500 hover:text-stone-700")
+          }
+        >
+          Catálogo
+        </button>
+        <button
+          type="button"
+          onClick={() => setVista("contenido")}
+          className={
+            "px-3 py-2 text-sm font-semibold border-b-2 -mb-px transition-colors " +
+            (vista === "contenido" ? "border-terracota-600 text-terracota-600" : "border-transparent text-stone-500 hover:text-stone-700")
+          }
+        >
+          Contenido del sitio
+        </button>
+      </div>
+
+      {vista === "contenido" ? (
+        <ContentSettings />
+      ) : (
+        <>
       <ProductForm
         values={formValues}
         onChange={setFormValues}
@@ -681,6 +967,8 @@ function AdminApp() {
           </>
         )}
       </div>
+        </>
+      )}
     </div>
   );
 }

@@ -13,12 +13,14 @@ const USE_API = API_BASE != null;
 // de página: los valores por defecto viven en default-content.js (demo,
 // se envía con el repo); CONTENT en config.js (gitignored, ver
 // config.example.js) sobrescribe cualquier subconjunto de esas claves.
-const CONTENT = {
+// `let`, no `const`: cuando USE_API está activo, App() sustituye este objeto
+// por el contenido guardado en D1 (ver el efecto en App()) y fuerza un
+// re-render. El resto de componentes lee CONTENT.xxx como variable libre en
+// cada render, así que reciben el valor nuevo sin necesidad de props/Context.
+let CONTENT = {
   ...(window.DEFAULT_CONTENT || {}),
   ...((window.APP_CONFIG && window.APP_CONFIG.CONTENT) || {}),
 };
-// document.title ya se fija en index.html (más rápido, antes de que carguen
-// Tailwind/React/Babel); CONTENT.titulo no se vuelve a usar aquí.
 
 const UNIDAD_LABEL = {
   "100g": "100 g",
@@ -270,7 +272,7 @@ function Hero() {
           </div>
         </div>
         <img
-          src="assets/images/cesta-ovillos-ganchillos.jpg"
+          src={CONTENT.imagenes?.hero || "assets/images/cesta-ovillos-ganchillos.jpg"}
           alt="Canasta con ovillos de estambre y ganchillos"
           className="w-full max-w-md mx-auto rounded-2xl object-cover"
         />
@@ -290,17 +292,25 @@ function Hero() {
 const KITS_CROCHET_CATEGORIAS = ["Suela", "Gancho", "Aguja", "Aros", "Telar", "Fundas"];
 
 const CATEGORY_TILES = [
-  { categoria: "Estambre", etiqueta: "Estambres", boton: "Ver Estambres", imagen: "assets/images/cesta-ovillos-estanteria.jpg" },
+  {
+    categoria: "Estambre",
+    etiqueta: "Estambres",
+    boton: "Ver Estambres",
+    imagenKey: "tileEstambre",
+    imagen: "assets/images/cesta-ovillos-estanteria.jpg",
+  },
   {
     categoria: "Kits para Crochet",
     etiqueta: "Kits para Crochet",
     boton: "Ver Kits",
+    imagenKey: "tileKits",
     imagen: "assets/images/cesta-ovillos-agujas.jpg",
   },
   {
     categoria: "Accesorios",
     etiqueta: "Revistas y Accesorios",
     boton: "Ver Accesorios",
+    imagenKey: "tileAccesorios",
     imagen: "assets/images/libros-crochet-mostrador.jpg",
   },
 ];
@@ -322,7 +332,12 @@ function CategoryTiles({ categoriaActiva, onSelectCategoria }) {
               }
             >
               <div className="aspect-video bg-crema">
-                <img src={tile.imagen} alt={tile.etiqueta} className="w-full h-full object-cover" loading="lazy" />
+                <img
+                  src={CONTENT.imagenes?.[tile.imagenKey] || tile.imagen}
+                  alt={tile.etiqueta}
+                  className="w-full h-full object-cover"
+                  loading="lazy"
+                />
               </div>
               <div className="p-5 flex flex-col items-center gap-3">
                 <h3 className="font-editorial text-lg font-semibold text-cafe">{tile.etiqueta}</h3>
@@ -588,7 +603,7 @@ function NosotrosYTestimonios() {
 
         <div className="flex flex-col gap-6">
           <img
-            src="assets/images/tienda-entrada-pizarra.jpg"
+            src={CONTENT.imagenes?.nosotros || "assets/images/tienda-entrada-pizarra.jpg"}
             alt={`Entrada de la tienda ${CONTENT.marca}, con letrero de bienvenida`}
             className="w-full aspect-[910/435] rounded-2xl object-cover"
           />
@@ -652,6 +667,20 @@ function Footer() {
 
 function App() {
   const [categoriaActiva, setCategoriaActiva] = useState("Todos");
+  const [, forzarRerender] = useState(0);
+
+  useEffect(() => {
+    if (!USE_API) return;
+    fetch(`${API_BASE}/api/content`)
+      .then((res) => res.json())
+      .then((data) => {
+        if (!data) return;
+        CONTENT = { ...CONTENT, ...data };
+        if (CONTENT.titulo) document.title = CONTENT.titulo;
+        forzarRerender((n) => n + 1);
+      })
+      .catch(() => {});
+  }, []);
 
   return (
     <React.Fragment>
