@@ -1,6 +1,9 @@
 ---
 name: site-content-and-images
 description: How site copy and non-catalog images (hero, nosotros, category tiles, logo, testimonials) are managed through D1 and /admin. Use when adding or editing a content field, or adding a new non-catalog image slot.
+metadata:
+  allowed-tools: Read, Edit, Grep, Glob, Bash
+  model: sonnet
 ---
 
 # Site content & non-catalog images (D1 + /admin)
@@ -206,9 +209,9 @@ Category tiles look up a per-tile key via `tile.imagenKey`
 ## See also / non-goals
 
 - Catalog CRUD (products/categorias/fabricantes) is a separate,
-  per-row-table pattern — not covered here.
-- Auth/session mechanics beyond "call `requireAuth`" — see `_auth.js`
-  directly if changing auth itself.
+  per-row-table pattern — not covered here, see `[[catalog-crud]]`.
+- Auth/session mechanics beyond "call `requireAuth`" — see
+  `[[auth-and-sessions]]`.
 - Deploy workflow (`deploy.sh`, applying migrations) — see `README.md`.
 - User-facing explanation of the three content-override methods — see
   `README.md` (Spanish); this file is the implementation-pattern
