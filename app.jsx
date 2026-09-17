@@ -23,7 +23,7 @@ let CONTENT = {
 };
 
 const UNIDAD_LABEL = {
-  "100g": "100 g",
+  gramos: "100 g",
   madeja: "madeja",
   unidad: "unidad",
 };
@@ -386,16 +386,93 @@ function CategoryFilter({ categorias, categoriaActiva, onSelectCategoria }) {
   );
 }
 
+// Apagado hasta que el stock real esté cargado: todo producto existente
+// arrancó en stock=0 al agregar la columna (nadie ha tenido oportunidad de
+// capturar cantidades reales todavía), así que mostrar "Agotado" ahora haría
+// ver todo el catálogo como sin existencias. Cambiar a `true` es el único
+// paso necesario una vez que el stock real esté cargado en /admin.
+const SHOW_AGOTADO_BADGE = false;
+
+// Sólo tiene sentido en modo API (USE_API): el catálogo demo/CSV no trae
+// `stock`/`colores`, así que el llamador nunca debe invocar esto en ese modo.
+function estaAgotado(producto) {
+  if (producto.colores && producto.colores.length > 0) {
+    return producto.colores.every((c) => (c.stock || 0) <= 0);
+  }
+  return (producto.stock || 0) <= 0;
+}
+
+function ColorSwatches({ colores }) {
+  const [seleccionado, setSeleccionado] = useState(null);
+  const [hover, setHover] = useState(null);
+
+  // El texto sigue al color en hover; si no hay hover, cae al seleccionado.
+  const mostrado = colores.find((c) => c.color_id === (hover ?? seleccionado));
+
+  return (
+    <div className="mt-2 flex flex-wrap items-center gap-2">
+      <div className="flex flex-wrap gap-2">
+        {colores.map((c) => {
+          const agotado = (c.stock || 0) <= 0;
+          const activo = seleccionado === c.color_id;
+          return (
+            <span
+              key={c.color_id}
+              onMouseEnter={() => setHover(c.color_id)}
+              onMouseLeave={() => setHover(null)}
+            >
+              <button
+                type="button"
+                aria-label={c.nombre + (agotado ? " (agotado)" : "")}
+                disabled={agotado}
+                onFocus={() => setHover(c.color_id)}
+                onBlur={() => setHover(null)}
+                onClick={() => setSeleccionado(c.color_id)}
+                className={
+                  "relative w-6 h-6 rounded-full border transition-shadow " +
+                  (agotado
+                    ? "opacity-40 cursor-not-allowed border-arena"
+                    : activo
+                    ? "border-cafe ring-2 ring-offset-1 ring-taupe cursor-pointer"
+                    : "border-arena hover:ring-2 hover:ring-taupe/50 cursor-pointer")
+                }
+                style={{ backgroundColor: c.hex || "#cccccc" }}
+              >
+                {agotado && (
+                  <span className="absolute inset-0 flex items-center justify-center text-[10px] text-cafe/80">
+                    ✕
+                  </span>
+                )}
+              </button>
+            </span>
+          );
+        })}
+      </div>
+      <span className="text-sm font-ui text-cafe/60 min-h-[1.25rem]">
+        {mostrado ? mostrado.nombre + ((mostrado.stock || 0) <= 0 ? " (agotado)" : "") : ""}
+      </span>
+    </div>
+  );
+}
+
 function ProductCard({ producto }) {
+  const conStockYColores = USE_API && Array.isArray(producto.colores);
+  const agotado = conStockYColores && estaAgotado(producto);
+
   return (
     <article className="bg-white rounded-2xl border border-arena overflow-hidden flex flex-col hover:shadow-lg hover:-translate-y-0.5 transition-all">
-      <div className="aspect-square bg-crema">
+      <div className="aspect-square bg-crema relative">
         <img
           src={producto.imagen}
           alt={producto.nombre}
           className="w-full h-full object-cover"
           loading="lazy"
         />
+        {SHOW_AGOTADO_BADGE && agotado && (
+          <span className="absolute top-2 right-2 bg-cafe text-crema text-xs font-ui font-bold uppercase tracking-wide px-2 py-1 rounded-full">
+            Agotado
+          </span>
+        )}
       </div>
       <div className="p-4 flex flex-col gap-1 flex-1">
         <span className="text-xs font-ui font-bold uppercase tracking-wide text-salvia">
@@ -407,6 +484,9 @@ function ProductCard({ producto }) {
         <p className="text-sm font-ui text-cafe/60">por {producto.fabricante}</p>
         {producto.descripcion && (
           <p className="text-sm font-ui text-cafe/60 mt-1 flex-1">{producto.descripcion}</p>
+        )}
+        {conStockYColores && producto.colores.length > 0 && (
+          <ColorSwatches colores={producto.colores} />
         )}
         <p className="mt-3 font-editorial text-lg font-semibold text-cafe">
           {formatPrecio(producto)}

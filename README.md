@@ -256,7 +256,7 @@ Las columnas del catálogo (tanto en `catalog.csv` como en la tabla
 
 `id, nombre, fabricante, categoria, imagen, precio, unidad_precio, descripcion`
 
-`unidad_precio` indica cómo se vende la referencia: `100g` (lanas que se
+`unidad_precio` indica cómo se vende la referencia: `gramos` (lanas que se
 cobran por cada 100 gramos), `madeja` (precio fijo por madeja/unidad de
 venta) o `unidad` (accesorios).
 

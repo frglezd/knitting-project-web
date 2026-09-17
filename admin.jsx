@@ -3,7 +3,11 @@ const { useState, useEffect } = React;
 const API_BASE = window.APP_CONFIG && window.APP_CONFIG.API_BASE;
 const USE_API = API_BASE != null;
 
-const UNIDAD_OPTIONS = ["100g", "madeja", "unidad"];
+const UNIDAD_OPTIONS = ["gramos", "madeja", "unidad"];
+
+// Unit label for stock quantities, matching each unidad_precio's real-world
+// count: grams for weight-priced yarn, whole skeins/pieces otherwise.
+const STOCK_UNIT_LABEL = { gramos: "g", madeja: "madejas", unidad: "piezas" };
 
 const EMPTY_PRODUCT = {
   nombre: "",
@@ -11,8 +15,10 @@ const EMPTY_PRODUCT = {
   categoria_id: "",
   imagen: "",
   precio: "",
-  unidad_precio: "100g",
+  unidad_precio: "gramos",
   descripcion: "",
+  stock: "0",
+  colores: [],
 };
 
 function api(path, options = {}) {
@@ -126,9 +132,15 @@ function Login({ onLoggedIn }) {
   );
 }
 
-function LookupSelect({ label, options, value, onChange, onCreate }) {
+// `extraCampo` is an optional slot for a second creation field beyond
+// `nombre` (only colores uses it, for `hex`): { valorInicial, render(valor,
+// setValor) }. When present, `onCreate` is called as `onCreate(nombre,
+// valorExtra)`; when absent (fabricantes/categorias), `onCreate(nombre)`
+// keeps its original one-argument contract.
+function LookupSelect({ label, options, value, onChange, onCreate, extraCampo }) {
   const [creando, setCreando] = useState(false);
   const [nuevoNombre, setNuevoNombre] = useState("");
+  const [valorExtra, setValorExtra] = useState(extraCampo ? extraCampo.valorInicial : undefined);
   const [error, setError] = useState("");
   const [guardando, setGuardando] = useState(false);
 
@@ -143,6 +155,7 @@ function LookupSelect({ label, options, value, onChange, onCreate }) {
   const cancelarCreacion = () => {
     setCreando(false);
     setNuevoNombre("");
+    setValorExtra(extraCampo ? extraCampo.valorInicial : undefined);
     setError("");
   };
 
@@ -151,7 +164,8 @@ function LookupSelect({ label, options, value, onChange, onCreate }) {
     if (!nombre) return;
     setError("");
     setGuardando(true);
-    onCreate(nombre)
+    const promesa = extraCampo ? onCreate(nombre, valorExtra) : onCreate(nombre);
+    promesa
       .then((item) => {
         onChange(String(item.id));
         cancelarCreacion();
@@ -171,6 +185,7 @@ function LookupSelect({ label, options, value, onChange, onCreate }) {
             onChange={(e) => setNuevoNombre(e.target.value)}
             autoFocus
           />
+          {extraCampo && extraCampo.render(valorExtra, setValorExtra)}
           <button
             type="button"
             onClick={handleCrear}
@@ -208,6 +223,25 @@ function LookupSelect({ label, options, value, onChange, onCreate }) {
   );
 }
 
+// Extra creation field for the "Colores" LookupSelect: an <input
+// type="color"> alongside the name field, so `onCrearColor(nombre, hex)` has
+// a hex to send. Passed only at the colores call site — fabricante/categoria
+// LookupSelects don't pass `extraCampo` and keep their one-argument
+// `onCreate(nombre)` contract.
+const COLOR_HEX_CAMPO = {
+  valorInicial: "#cccccc",
+  render: (valor, setValor) => (
+    <input
+      key="hex"
+      type="color"
+      value={valor}
+      onChange={(e) => setValor(e.target.value)}
+      title="Color"
+      className="w-10 h-10 shrink-0 border border-stone-300 rounded-lg p-0.5"
+    />
+  ),
+};
+
 function ProductForm({
   values,
   onChange,
@@ -217,14 +251,33 @@ function ProductForm({
   error,
   fabricantes,
   categorias,
+  colores,
   onCrearFabricante,
   onCrearCategoria,
+  onCrearColor,
 }) {
   const [subiendo, setSubiendo] = useState(false);
   const [uploadError, setUploadError] = useState("");
 
   const set = (field) => (e) => onChange({ ...values, [field]: e.target.value });
   const setValue = (field) => (value) => onChange({ ...values, [field]: value });
+
+  const tieneColores = (values.colores || []).length > 0;
+
+  const agregarColorVariante = () => {
+    onChange({ ...values, colores: [...(values.colores || []), { color_id: "", stock: "0" }] });
+  };
+
+  const actualizarColorVariante = (indice, cambios) => {
+    onChange({
+      ...values,
+      colores: values.colores.map((c, i) => (i === indice ? { ...c, ...cambios } : c)),
+    });
+  };
+
+  const eliminarColorVariante = (indice) => {
+    onChange({ ...values, colores: values.colores.filter((_, i) => i !== indice) });
+  };
 
   const handleFileUpload = (e) => {
     const file = e.target.files[0];
@@ -312,6 +365,19 @@ function ProductForm({
           </option>
         ))}
       </select>
+      <div className="flex flex-col gap-1">
+        <input
+          className="border border-stone-300 rounded-lg px-3 py-2 disabled:bg-stone-100 disabled:text-stone-400"
+          placeholder={`Existencias (${STOCK_UNIT_LABEL[values.unidad_precio] || values.unidad_precio})`}
+          type="number"
+          min="0"
+          step="1"
+          value={values.stock}
+          onChange={set("stock")}
+          disabled={tieneColores}
+        />
+        {tieneColores && <p className="text-xs text-stone-500">Se usa el stock por color</p>}
+      </div>
       <textarea
         className="border border-stone-300 rounded-lg px-3 py-2 sm:col-span-2"
         placeholder="Descripción"
@@ -319,6 +385,54 @@ function ProductForm({
         onChange={set("descripcion")}
         rows={2}
       />
+      <div className="sm:col-span-2 flex flex-col gap-2 border border-stone-200 rounded-lg p-3">
+        <h3 className="text-sm font-semibold text-stone-600">Colores disponibles</h3>
+        {(values.colores || []).map((c, indice) => (
+          <div key={indice} className="flex flex-col sm:flex-row gap-2 sm:items-start">
+            <span
+              className="w-9 h-9 rounded-full border border-stone-300 shrink-0 mt-0.5"
+              style={{
+                backgroundColor:
+                  (colores.find((co) => String(co.id) === String(c.color_id)) || {}).hex || "#cccccc",
+              }}
+              title="Vista previa del color"
+            />
+            <div className="flex-1">
+              <LookupSelect
+                label="Color"
+                options={colores}
+                value={c.color_id}
+                onChange={(value) => actualizarColorVariante(indice, { color_id: value })}
+                onCreate={onCrearColor}
+                extraCampo={COLOR_HEX_CAMPO}
+              />
+            </div>
+            <input
+              className="border border-stone-300 rounded-lg px-3 py-2 sm:w-40"
+              placeholder={`Existencias (${STOCK_UNIT_LABEL[values.unidad_precio] || values.unidad_precio})`}
+              type="number"
+              min="0"
+              step="1"
+              value={c.stock}
+              onChange={(e) => actualizarColorVariante(indice, { stock: e.target.value })}
+            />
+            <button
+              type="button"
+              onClick={() => eliminarColorVariante(indice)}
+              className="text-sm text-terracota-600 hover:underline self-start sm:self-center"
+            >
+              Eliminar
+            </button>
+          </div>
+        ))}
+        <button
+          type="button"
+          onClick={agregarColorVariante}
+          className="self-start text-sm font-semibold text-musgo-600 hover:underline"
+        >
+          + Agregar color
+        </button>
+      </div>
       {error && <p className="text-sm text-terracota-600 sm:col-span-2">{error}</p>}
       <div className="sm:col-span-2 flex gap-2">
         <button
@@ -734,6 +848,7 @@ function AdminApp() {
   const [productos, setProductos] = useState([]);
   const [fabricantes, setFabricantes] = useState([]);
   const [categorias, setCategorias] = useState([]);
+  const [colores, setColores] = useState([]);
   const [cargando, setCargando] = useState(true);
   const [editId, setEditId] = useState(null);
   const [formValues, setFormValues] = useState(EMPTY_PRODUCT);
@@ -752,6 +867,7 @@ function AdminApp() {
     cargarProductos();
     api("/api/fabricantes").then((res) => res.json()).then((data) => setFabricantes(ordenarPorNombre(data)));
     api("/api/categorias").then((res) => res.json()).then((data) => setCategorias(ordenarPorNombre(data)));
+    api("/api/colores").then((res) => res.json()).then((data) => setColores(ordenarPorNombre(data)));
   }, []);
 
   const crearValorLookup = (path, setLista) => (nombre) =>
@@ -769,6 +885,22 @@ function AdminApp() {
 
   const crearFabricante = crearValorLookup("/api/fabricantes", setFabricantes);
   const crearCategoria = crearValorLookup("/api/categorias", setCategorias);
+
+  // Colores take a `hex` alongside `nombre` (LookupSelect's `extraCampo`
+  // passes it as the second arg), so this isn't built on the generic
+  // `crearValorLookup` factory used by fabricante/categoria.
+  const crearColor = (nombre, hex) =>
+    api("/api/colores", { method: "POST", body: JSON.stringify({ nombre, hex }) })
+      .then((res) => {
+        if (!res.ok) throw new Error("No se pudo guardar el valor");
+        return res.json();
+      })
+      .then((item) => {
+        setColores((prev) =>
+          prev.some((v) => v.id === item.id) ? prev : ordenarPorNombre([...prev, item])
+        );
+        return item;
+      });
 
   const renombrarValorLookup = (path, setLista) => (id, nombre) =>
     api(`${path}/${id}`, { method: "PUT", body: JSON.stringify({ nombre }) })
@@ -801,8 +933,13 @@ function AdminApp() {
       categoria_id: producto.categoria_id ? String(producto.categoria_id) : "",
       imagen: producto.imagen || "",
       precio: producto.precio ?? "",
-      unidad_precio: producto.unidad_precio || "100g",
+      unidad_precio: producto.unidad_precio || "gramos",
       descripcion: producto.descripcion || "",
+      stock: producto.stock != null ? String(producto.stock) : "0",
+      colores: (producto.colores || []).map((c) => ({
+        color_id: String(c.color_id),
+        stock: c.stock != null ? String(c.stock) : "0",
+      })),
     });
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
@@ -884,8 +1021,10 @@ function AdminApp() {
         error={formError}
         fabricantes={fabricantes}
         categorias={categorias}
+        colores={colores}
         onCrearFabricante={crearFabricante}
         onCrearCategoria={crearCategoria}
+        onCrearColor={crearColor}
       />
 
       <button
@@ -934,6 +1073,7 @@ function AdminApp() {
                   <th className="py-2 pr-2">Nombre</th>
                   <th className="py-2 pr-2">Categoría</th>
                   <th className="py-2 pr-2">Precio</th>
+                  <th className="py-2 pr-2">Existencias</th>
                   <th className="py-2"></th>
                 </tr>
               </thead>
@@ -945,6 +1085,14 @@ function AdminApp() {
                     <td className="py-2 pr-2">{p.categoria}</td>
                     <td className="py-2 pr-2">
                       {p.precio} / {p.unidad_precio}
+                    </td>
+                    <td className="py-2 pr-2">
+                      {(() => {
+                        const unidad = STOCK_UNIT_LABEL[p.unidad_precio] || p.unidad_precio;
+                        return p.colores && p.colores.length > 0
+                          ? `${p.colores.reduce((total, c) => total + (c.stock || 0), 0)} ${unidad} (${p.colores.length} colores)`
+                          : `${p.stock} ${unidad}`;
+                      })()}
                     </td>
                     <td className="py-2 text-right whitespace-nowrap">
                       <button
