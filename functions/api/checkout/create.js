@@ -267,11 +267,21 @@ export async function onRequestPost({ request, env }) {
       },
       body: params,
     });
-  } catch {
+  } catch (err) {
+    // Log the real cause — the generic customer-facing message below
+    // deliberately doesn't leak Stripe's error detail, but that means
+    // this is the only place the actual reason (network failure here,
+    // vs. a rejected request below) is visible at all.
+    console.error("Fallo la llamada a Stripe (orderId=" + orderId + "):", err);
     return json({ error: "No se pudo iniciar el pago" }, 502);
   }
 
   if (!stripeRes.ok) {
+    const detail = await stripeRes.text().catch(() => "");
+    console.error(
+      "Stripe respondio " + stripeRes.status + " (orderId=" + orderId + "):",
+      detail
+    );
     return json({ error: "No se pudo iniciar el pago" }, 502);
   }
 

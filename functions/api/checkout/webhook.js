@@ -3,9 +3,14 @@
 // Stripe's servers carry no admin session cookie. Always returns 200 once
 // the signature is valid, even for event types this phase doesn't act on:
 // Stripe retries aggressively (up to 3 days) on any non-2xx response.
+//
+// The actual status-flip/stock-decrement/email logic lives in
+// confirmPaidOrder (../_checkout.js), shared with checkout/poll.js's
+// polling fallback — this file is just event-type filtering + extracting
+// the order id, per the plan doc's split.
 
 import { verifyStripeSignature } from "../_payments.js";
-import { sendOrderConfirmationEmails } from "../_email.js";
+import { confirmPaidOrder } from "../_checkout.js";
 
 function json(data, status = 200) {
   return new Response(JSON.stringify(data), {
@@ -45,65 +50,6 @@ export async function onRequestPost({ request, env }) {
     return json({ ok: true, ignored: true });
   }
 
-  const order = await env.DB.prepare(
-    "SELECT id, created_at, customer_name, customer_email, customer_phone, total, currency FROM orders WHERE id = ?"
-  )
-    .bind(orderId)
-    .first();
-  if (!order) {
-    return json({ ok: true, ignored: true });
-  }
-
-  // Idempotent status flip: Stripe can deliver the same event more than
-  // once. meta.changes === 0 means a previous delivery already flipped this
-  // order to 'paid' (or beyond) — skip the stock decrement, it already ran.
-  const flip = await env.DB.prepare(
-    "UPDATE orders SET status = 'paid' WHERE id = ? AND status = 'pending_payment'"
-  )
-    .bind(orderId)
-    .run();
-
-  if (flip.meta.changes === 0) {
-    return json({ ok: true, duplicate: true });
-  }
-
-  const { results: items } = await env.DB.prepare(
-    `SELECT product_id, product_color_id, cantidad, product_nombre, color_nombre,
-            unidad_precio, precio_unitario, subtotal
-     FROM order_items WHERE order_id = ?`
-  )
-    .bind(orderId)
-    .all();
-
-  const decrementStatements = items.map((item) =>
-    item.product_color_id
-      ? env.DB.prepare("UPDATE product_colores SET stock = stock - ? WHERE id = ? AND stock >= ?").bind(
-          item.cantidad,
-          item.product_color_id,
-          item.cantidad
-        )
-      : env.DB.prepare("UPDATE products SET stock = stock - ? WHERE id = ? AND stock >= ?").bind(
-          item.cantidad,
-          item.product_id,
-          item.cantidad
-        )
-  );
-
-  const decrementResults = decrementStatements.length > 0 ? await env.DB.batch(decrementStatements) : [];
-  const oversold = decrementResults.some((r) => r.meta.changes === 0);
-
-  if (oversold) {
-    await env.DB.prepare("UPDATE orders SET status = 'paid_oversold' WHERE id = ?").bind(orderId).run();
-  }
-
-  try {
-    await sendOrderConfirmationEmails(env, {
-      order: { ...order, status: oversold ? "paid_oversold" : "paid" },
-      items,
-    });
-  } catch (err) {
-    console.error("No se pudieron enviar los correos de confirmación del pedido", orderId, err);
-  }
-
-  return json({ ok: true });
+  const result = await confirmPaidOrder(env, { orderId });
+  return json({ ok: true, ...result });
 }

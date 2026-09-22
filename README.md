@@ -308,6 +308,47 @@ realmente se completó, y luego reenviar ese evento al webhook con
 `stripe listen` activo para que corra la lógica real de una vez
 (cambio de estado + descuento de existencias juntos, no por separado).
 
+### Respaldo por polling (mientras el webhook de Stripe no entrega)
+
+La entrega en tiempo real de webhooks de Stripe está actualmente rota para
+esta cuenta — los eventos se crean correctamente (`pending_webhooks > 0`
+del lado de Stripe), pero **nunca llegan** al endpoint registrado
+(`/api/checkout/webhook`). Diagnóstico completo, ya reportado a soporte de
+Stripe, en `assets/proposals/todo/stripe-support-ticket-webhook-not-delivering.md`
+(gitignored). Mientras se resuelve, hay un respaldo por *polling* que no
+depende de que Stripe entregue nada: consulta directamente la API de
+eventos de Stripe (`GET /v1/events?type=checkout.session.completed`) cada
+pocos minutos y corre la misma lógica de confirmación que el webhook
+(`functions/api/_checkout.js`'s `confirmPaidOrder`, compartida por ambos
+caminos — no hay dos copias de la lógica de descuento de existencias).
+
+Piezas:
+- `functions/api/checkout/poll.js` — endpoint `POST /api/checkout/poll`
+  dentro de este mismo proyecto de Pages, protegido por un secreto
+  compartido (`POLL_SECRET`, header `X-Poll-Secret`), no por sesión de
+  admin — quien lo llama es un Worker sin cookie de sesión, no un
+  navegador.
+- `poller/` — un **Worker de Cloudflare independiente** (no Pages), cuyo
+  único trabajo es invocar ese endpoint cada 5 minutos vía Cron Trigger
+  (Pages Functions no soportan Cron Triggers en absoluto — esta es la
+  razón de que sea un proyecto aparte). Se despliega por separado:
+  ```bash
+  cd poller
+  npx wrangler deploy
+  ```
+
+Para probar el endpoint de polling en local (no hace falta tener el
+Worker `poller/` corriendo — es solo una llamada HTTP, basta con
+`wrangler pages dev` activo):
+```bash
+curl -X POST http://localhost:8788/api/checkout/poll \
+  -H "X-Poll-Secret: $(grep POLL_SECRET .dev.vars | cut -d= -f2)"
+```
+Una respuesta sin el header correcto (o con `POLL_SECRET` vacío en
+`.dev.vars`) debe regresar `401`. Con el header correcto, regresa un
+resumen `{ checked, confirmed, errors }` de los eventos revisados en los
+últimos ~20 minutos.
+
 ## Imágenes de producto
 
 Las imágenes en `assets/images/` son ilustraciones SVG genéricas
