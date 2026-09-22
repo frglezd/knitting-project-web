@@ -843,8 +843,144 @@ function ContentSettings() {
   );
 }
 
+const ORDER_STATUS_LABEL = {
+  pending_payment: "Pendiente de pago",
+  paid: "Pagado",
+  paid_oversold: "Pagado (sin existencias)",
+  fulfilled: "Entregado",
+  payment_failed: "Pago fallido",
+  cancelled: "Cancelado",
+};
+
+const ORDER_STATUS_BADGE_CLASS = {
+  pending_payment: "bg-stone-100 text-stone-600",
+  paid: "bg-musgo-100 text-musgo-700",
+  paid_oversold: "bg-terracota-100 text-terracota-700",
+  fulfilled: "bg-emerald-100 text-emerald-700",
+  payment_failed: "bg-terracota-100 text-terracota-700",
+  cancelled: "bg-stone-200 text-stone-500",
+};
+
+function formatFecha(iso) {
+  if (!iso) return "";
+  const fecha = new Date(iso.includes("T") ? iso : iso.replace(" ", "T") + "Z");
+  if (Number.isNaN(fecha.getTime())) return iso;
+  return fecha.toLocaleString("es-MX", { dateStyle: "medium", timeStyle: "short" });
+}
+
+function PedidosTab() {
+  const [pedidos, setPedidos] = useState([]);
+  const [cargando, setCargando] = useState(true);
+  const [error, setError] = useState("");
+
+  const cargarPedidos = () => {
+    setCargando(true);
+    setError("");
+    api("/api/orders")
+      .then((res) => {
+        if (!res.ok) return parseJsonError(res, "No se pudieron cargar los pedidos");
+        return res.json();
+      })
+      .then((data) => setPedidos(data))
+      .catch((err) => setError(err.message))
+      .finally(() => setCargando(false));
+  };
+
+  useEffect(() => {
+    cargarPedidos();
+  }, []);
+
+  const marcarEntregado = (pedido) => {
+    api(`/api/orders/${pedido.id}`, { method: "PUT", body: JSON.stringify({ status: "fulfilled" }) })
+      .then((res) => {
+        if (!res.ok) return parseJsonError(res, "No se pudo actualizar el pedido");
+        cargarPedidos();
+      })
+      .catch((err) => setError(err.message));
+  };
+
+  if (cargando) {
+    return <p className="text-stone-500">Cargando pedidos…</p>;
+  }
+
+  return (
+    <div className="bg-white border border-stone-200 rounded-2xl p-5">
+      {error && <p className="text-sm text-terracota-600 mb-3">{error}</p>}
+      {pedidos.length === 0 ? (
+        <p className="text-stone-500">Todavía no hay pedidos.</p>
+      ) : (
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="text-left text-stone-500 border-b border-stone-200">
+              <th className="py-2 pr-2">#</th>
+              <th className="py-2 pr-2">Fecha</th>
+              <th className="py-2 pr-2">Cliente</th>
+              <th className="py-2 pr-2">Productos</th>
+              <th className="py-2 pr-2">Total</th>
+              <th className="py-2 pr-2">Estado</th>
+              <th className="py-2"></th>
+            </tr>
+          </thead>
+          <tbody>
+            {pedidos.map((p) => {
+              const items = p.items || [];
+              return (
+                <tr key={p.id} className="border-b border-stone-100 align-top">
+                  <td className="py-2 pr-2 text-stone-400">{p.id}</td>
+                  <td className="py-2 pr-2 whitespace-nowrap">{formatFecha(p.created_at)}</td>
+                  <td className="py-2 pr-2">
+                    <div>{p.customer_name}</div>
+                    <div className="text-stone-500 text-xs">{p.customer_email}</div>
+                  </td>
+                  <td className="py-2 pr-2">
+                    <div className="flex flex-col gap-1">
+                      {items.map((item, i) => {
+                        const unidad = STOCK_UNIT_LABEL[item.unidad_precio] || item.unidad_precio;
+                        return (
+                          <div key={i}>
+                            {item.product_nombre}
+                            {item.color_nombre ? ` — ${item.color_nombre}` : ""} · {item.cantidad} {unidad}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </td>
+                  <td className="py-2 pr-2 whitespace-nowrap">
+                    ${Number(p.total).toFixed(2)} {p.currency}
+                  </td>
+                  <td className="py-2 pr-2">
+                    <span
+                      className={
+                        "inline-block px-2 py-1 rounded-full text-xs font-semibold " +
+                        (ORDER_STATUS_BADGE_CLASS[p.status] || "bg-stone-100 text-stone-600")
+                      }
+                    >
+                      {ORDER_STATUS_LABEL[p.status] || p.status}
+                    </span>
+                  </td>
+                  <td className="py-2 text-right whitespace-nowrap">
+                    {p.status === "paid" && (
+                      <button
+                        type="button"
+                        onClick={() => marcarEntregado(p)}
+                        className="text-musgo-600 hover:underline"
+                      >
+                        Marcar como entregado
+                      </button>
+                    )}
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      )}
+    </div>
+  );
+}
+
 function AdminApp() {
-  const [vista, setVista] = useState("catalogo"); // catalogo | contenido
+  const [vista, setVista] = useState("catalogo"); // catalogo | contenido | pedidos
   const [productos, setProductos] = useState([]);
   const [fabricantes, setFabricantes] = useState([]);
   const [categorias, setCategorias] = useState([]);
@@ -1006,10 +1142,22 @@ function AdminApp() {
         >
           Contenido del sitio
         </button>
+        <button
+          type="button"
+          onClick={() => setVista("pedidos")}
+          className={
+            "px-3 py-2 text-sm font-semibold border-b-2 -mb-px transition-colors " +
+            (vista === "pedidos" ? "border-terracota-600 text-terracota-600" : "border-transparent text-stone-500 hover:text-stone-700")
+          }
+        >
+          Pedidos
+        </button>
       </div>
 
       {vista === "contenido" ? (
         <ContentSettings />
+      ) : vista === "pedidos" ? (
+        <PedidosTab />
       ) : (
         <>
       <ProductForm

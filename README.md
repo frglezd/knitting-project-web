@@ -260,6 +260,54 @@ Las columnas del catálogo (tanto en `catalog.csv` como en la tabla
 cobran por cada 100 gramos), `madeja` (precio fijo por madeja/unidad de
 venta) o `unidad` (accesorios).
 
+### Probar el checkout de Stripe en local
+
+`POST /api/checkout/create` (`functions/api/checkout/create.js`) crea la
+sesión de pago con normalidad sin nada adicional — el problema es el otro
+lado: Stripe solo avisa de que un pago se completó llamando a un webhook, y
+**sin nada escuchando ese webhook, el aviso simplemente no llega a nadie**,
+aunque el pago se haya cobrado con éxito en Stripe. El síntoma es siempre
+el mismo: el pedido se queda en "Pendiente de pago" en la pestaña Pedidos
+del panel para siempre, aunque el cliente sí haya pagado.
+
+Antes de probar una compra en `wrangler pages dev` hay que levantar el
+reenvío de webhooks de Stripe CLI **en otra terminal**, y dejarlo corriendo
+mientras se prueba:
+
+```bash
+stripe listen --events checkout.session.completed \
+  --forward-to localhost:8788/api/checkout/webhook
+```
+
+Al arrancar imprime algo como:
+
+```
+Ready! Your webhook signing secret is whsec_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+```
+
+Copia ese valor a `STRIPE_WEBHOOK_SECRET` en `.dev.vars` (junto a
+`ADMIN_USERNAME`/`ADMIN_PASSWORD`/`SESSION_SECRET`/`STRIPE_SECRET_KEY`) y
+**reinicia `wrangler pages dev`** — solo lee `.dev.vars` al arrancar, así
+que un cambio en el fichero no se aplica hasta reiniciar. Dos detalles más:
+
+- Ese `whsec_...` es de esa sesión de `stripe listen` concreta — no lo
+  dejes puesto de forma permanente en `.dev.vars` cuando termines de
+  probar, ya que confunde más de lo que ayuda si queda ahí sin
+  `stripe listen` corriendo detrás.
+- `STRIPE_SECRET_KEY` debe ser una clave de **test** (`sk_test_...` /
+  `rk_test_...`), nunca una de producción (`sk_live_...` / `rk_live_...`),
+  mientras se está probando en local.
+
+Si un pedido se quedó atascado en "Pendiente de pago" a pesar de haberse
+pagado (por no tener `stripe listen` corriendo en su momento), no lo
+corrijas cambiando el estado a mano desde el panel — eso actualiza el
+estado pero **no** descuenta existencias, porque ese descuento vive en el
+propio webhook (`functions/api/checkout/webhook.js`). Lo correcto es medio
+manual: confirmar en el Dashboard de Stripe (o vía API) que el pago
+realmente se completó, y luego reenviar ese evento al webhook con
+`stripe listen` activo para que corra la lógica real de una vez
+(cambio de estado + descuento de existencias juntos, no por separado).
+
 ## Imágenes de producto
 
 Las imágenes en `assets/images/` son ilustraciones SVG genéricas

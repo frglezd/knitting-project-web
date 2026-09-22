@@ -26,7 +26,7 @@ const SELECT_PRODUCTS = `
 `;
 
 const SELECT_PRODUCT_COLORES = `
-  SELECT pc.product_id, pc.color_id, co.nombre, co.hex, pc.stock
+  SELECT pc.id AS product_color_id, pc.product_id, pc.color_id, co.nombre, co.hex, pc.stock
   FROM product_colores pc
   JOIN colores co ON co.id = pc.color_id
   ORDER BY co.nombre COLLATE NOCASE
@@ -34,6 +34,23 @@ const SELECT_PRODUCT_COLORES = `
 
 function coerceStock(value) {
   return Number.isFinite(Number(value)) && Number(value) >= 0 ? Math.trunc(Number(value)) : 0;
+}
+
+// The same color can't appear twice in one product's variant list — a
+// second row for a color_id already used would collide with
+// product_colores' UNIQUE(product_id, color_id) constraint (and, via a
+// quirk of how D1/SQLite reports it inside a batch, surfaces as a raw
+// "FOREIGN KEY constraint failed" 500 instead of a clean validation
+// error). Checked up front so a bad request never reaches the DB.
+function hasDuplicateColorId(colores) {
+  const seen = new Set();
+  for (const c of Array.isArray(colores) ? colores : []) {
+    const colorId = Number(c && c.color_id);
+    if (!Number.isInteger(colorId) || colorId <= 0) continue;
+    if (seen.has(colorId)) return true;
+    seen.add(colorId);
+  }
+  return false;
 }
 
 // Attaches each product's color variants (if any) as a `colores` array.
@@ -44,6 +61,12 @@ function attachColores(productos, coloresRows) {
     lista.push({
       id: fila.color_id,
       color_id: fila.color_id,
+      // The actual product_colores primary key — distinct from color_id
+      // above (which stays as `id`/`color_id` for backward compat with
+      // existing app.jsx/admin.jsx code that only reads `color_id`).
+      // Needed by checkout: orders.order_items.product_color_id is a real
+      // FK into product_colores(id), not into colores(id).
+      product_color_id: fila.product_color_id,
       nombre: fila.nombre,
       hex: fila.hex,
       stock: fila.stock,
@@ -100,6 +123,13 @@ export async function onRequestPost({ request, env }) {
 
   if (!isValidProduct(body)) {
     return new Response(JSON.stringify({ error: "Faltan campos obligatorios" }), {
+      status: 400,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
+
+  if (hasDuplicateColorId(body.colores)) {
+    return new Response(JSON.stringify({ error: "No puedes repetir el mismo color en un producto" }), {
       status: 400,
       headers: { "Content-Type": "application/json" },
     });

@@ -9,14 +9,20 @@ You write and apply D1 schema migrations for the Punto y Lana database.
 
 Rules to follow, in order:
 
-1. **Never edit `schema.sql`** for a schema change on a database that
-   already has data — that file is fresh-install-only and editing it does
-   nothing for existing local/remote databases.
+1. **Never use `schema.sql` to *apply* a change** to a database that
+   already has data — that file is fresh-install-only, and re-running it
+   does nothing for an existing local/remote database.
 2. **Write a new file** in `migrations/000N_*.sql`, numbered one past the
    highest existing migration (check `migrations/` for the current max
    before naming it). Look at the existing migrations
    (`0001_add_fabricante_categoria_lookup_tables.sql`,
-   `0002_add_site_content.sql`) for the style/structure to match.
+   `0002_add_site_content.sql`) for the style/structure to match. **Also
+   update `schema.sql`** to mirror the same change into its `CREATE TABLE`
+   definitions — every migration in this repo pairs with a `schema.sql`
+   update, so a brand-new clone's fresh install ends up matching a
+   migrated database instead of drifting from it. Rule 1 only rules out
+   using `schema.sql` to *apply* a change; keeping it updated as
+   documentation of the current end state is expected every time.
 3. **Apply locally** with
    `wrangler d1 migrations apply punto-y-lana --local`, then verify the
    change actually landed (e.g. `wrangler d1 execute punto-y-lana --local

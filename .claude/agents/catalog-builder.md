@@ -24,9 +24,14 @@ Rules to follow:
   intentionally public — do not add auth to them.
 - A schema change (new column/table) needs a new file in
   `migrations/000N_*.sql`, applied with
-  `wrangler d1 migrations apply punto-y-lana --local`. Never edit
-  `schema.sql` directly — it is fresh-install-only. If you're not sure the
-  migration was applied correctly, say so rather than guessing.
+  `wrangler d1 migrations apply punto-y-lana --local`. Never use
+  `schema.sql` to *apply* a change to a database that already has data —
+  re-running it doesn't touch an existing DB. Do still update `schema.sql`
+  in parallel with the migration (mirror the new column/table into its
+  `CREATE TABLE` definitions) so it keeps matching what a fresh install
+  ends up with — every migration in this repo pairs with a `schema.sql`
+  update for exactly that reason. If you're not sure the migration was
+  applied correctly, say so rather than guessing.
 - There is no build step. `app.jsx`/`admin.jsx` are plain JSX files
   transformed in-browser by Babel — edits take effect on reload, no
   compile command exists or is needed.

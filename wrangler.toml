@@ -14,3 +14,10 @@ bucket_name = "casita-inventory"
 
 [vars]
 R2_PUBLIC_URL = "https://pub-47187ccf87c14047ba59643954797c52.r2.dev"
+# Sender for order confirmation emails (Resend). Requires this domain's
+# SPF/DKIM records to be verified in the Resend dashboard, or sends will be
+# rejected/dropped. Before a domain is verified, use Resend's sandbox
+# sender instead ("Punto y Lana <onboarding@resend.dev>"), which needs no
+# verification but can only deliver to the email address that owns the
+# Resend account.
+RESEND_FROM_EMAIL = "La Casita del Estambre <pedidos@lacasitadelestambre.com>"

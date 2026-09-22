@@ -16,9 +16,14 @@ Check every diff against this repo-specific list first:
    `functions/api/` calls `requireAuth(request, env)` as its first
    statement. `GET` handlers should stay public — don't flag those.
 2. **Schema changes**: any DB schema change is a new
-   `migrations/000N_*.sql` file, not an edit to `schema.sql` (that file is
-   fresh-install-only and editing it does nothing for a database that
-   already has data).
+   `migrations/000N_*.sql` file — `schema.sql` alone is never how a change
+   reaches a database that already has data (re-running it does nothing
+   for one). But `schema.sql` *should* change alongside that migration
+   file, mirroring the same column/table into its `CREATE TABLE`
+   definitions, so a fresh install matches a migrated database instead of
+   drifting from it — flag a migration that *isn't* paired with a
+   matching `schema.sql` update as a gap, don't flag the `schema.sql`
+   edit itself as the problem.
 3. **Deploy path**: nothing added tells someone to run
    `wrangler pages deploy .` directly — `deploy.sh` exists specifically to
    avoid uploading `.dev.vars`/`wrangler.toml`/`backup/*.sql`.

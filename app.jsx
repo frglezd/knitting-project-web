@@ -1,4 +1,4 @@
-const { useState, useEffect, useMemo } = React;
+const { useState, useEffect, useMemo, useContext, createContext } = React;
 
 // Por defecto el catálogo se sirve desde catalog.csv (modo demo). Si
 // config.js (gitignored, ver config.example.js) define API_BASE, el
@@ -35,6 +35,165 @@ function formatPrecio(producto) {
   });
   const unidad = UNIDAD_LABEL[producto.unidad_precio] || producto.unidad_precio;
   return `$${precio} MXN / ${unidad}`;
+}
+
+function round2(n) {
+  return Math.round(n * 100) / 100;
+}
+
+// Mirrors functions/api/checkout/create.js's subtotal formula exactly (same
+// gramos-are-priced-per-100g math) — kept as a tiny pure function so the
+// cart context, the drawer's per-line subtotal, and CheckoutModal's summary
+// can't silently drift from each other or from the server.
+function computeSubtotal(precioUnitario, unidadPrecio, cantidad) {
+  return round2(precioUnitario * (unidadPrecio === "gramos" ? cantidad / 100 : cantidad));
+}
+
+// Same step/clamp math BuySection already used for its own quantity
+// stepper (100/gramos, 1/otherwise) — factored out so the cart drawer's
+// stepper and the merge-on-add logic can reuse it without duplicating the
+// branch.
+function stepFor(unidadPrecio) {
+  return unidadPrecio === "gramos" ? 100 : 1;
+}
+function clampStock(unidadPrecio, stock) {
+  const step = stepFor(unidadPrecio);
+  const safeStock = stock || 0;
+  return unidadPrecio === "gramos" ? Math.floor(safeStock / step) * step : safeStock;
+}
+
+// ---------------------------------------------------------------------
+// Cart: React Context + localStorage persistence (key `pyl_cart_v1`).
+// Only ever touched when USE_API — demo/CSV mode never reads or writes
+// localStorage and never renders cart UI (CartIcon/CartDrawer are both
+// gated on USE_API where they're rendered).
+// ---------------------------------------------------------------------
+const CART_STORAGE_KEY = "pyl_cart_v1";
+
+const CartContext = createContext(null);
+
+function hydrateCart() {
+  if (!USE_API) return [];
+  try {
+    const raw = window.localStorage.getItem(CART_STORAGE_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+function lineKey(productId, productColorId) {
+  return `${productId}:${productColorId ?? "none"}`;
+}
+
+function CartProvider({ children }) {
+  const [lines, setLines] = useState(hydrateCart);
+  const [isOpen, setIsOpen] = useState(false);
+
+  useEffect(() => {
+    if (!USE_API) return;
+    try {
+      window.localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(lines));
+    } catch {
+      // Private browsing / quota exceeded — cart just won't persist across
+      // reloads, not worth surfacing to the customer.
+    }
+  }, [lines]);
+
+  // Merges on (product_id, product_color_id): adding the same product+color
+  // twice sums cantidad into the existing line instead of pushing a
+  // duplicate. No stock ceiling is persisted into the line itself — stock
+  // is volatile and is only ever re-checked live (CartDrawer, on open).
+  // The clamp applied here at add-time is a best-effort UX nicety using
+  // whatever stock figure the catalog fetch already gave us.
+  const addItem = (producto, colorSeleccionado, cantidad) => {
+    setLines((prev) => {
+      const key = lineKey(producto.id, colorSeleccionado ? colorSeleccionado.product_color_id : null);
+      const idx = prev.findIndex((l) => l.key === key);
+      if (idx === -1) {
+        return [
+          ...prev,
+          {
+            key,
+            product_id: producto.id,
+            product_color_id: colorSeleccionado ? colorSeleccionado.product_color_id : null,
+            nombre: producto.nombre,
+            color_nombre: colorSeleccionado ? colorSeleccionado.nombre : null,
+            color_hex: colorSeleccionado ? colorSeleccionado.hex : null,
+            imagen: producto.imagen,
+            unidad_precio: producto.unidad_precio,
+            precio_unitario: Number(producto.precio),
+            cantidad,
+          },
+        ];
+      }
+      const maxStock = colorSeleccionado
+        ? colorSeleccionado.stock
+        : producto.stock != null
+        ? producto.stock
+        : Infinity;
+      const maxClamped = clampStock(producto.unidad_precio, maxStock);
+      const next = prev.slice();
+      next[idx] = { ...next[idx], cantidad: Math.min(maxClamped, next[idx].cantidad + cantidad) };
+      return next;
+    });
+    setIsOpen(true);
+  };
+
+  const updateQuantity = (key, cantidad) => {
+    setLines((prev) => prev.map((l) => (l.key === key ? { ...l, cantidad } : l)));
+  };
+
+  const removeItem = (key) => {
+    setLines((prev) => prev.filter((l) => l.key !== key));
+  };
+
+  const clear = () => setLines([]);
+
+  // Derived, never stored separately (avoids drift): subtotal sums every
+  // line's own subtotal; count is the *distinct line* count (not summed
+  // cantidad — a badge reading "300" from 300g of yarn would be misleading).
+  const subtotal = useMemo(
+    () => lines.reduce((sum, l) => sum + computeSubtotal(l.precio_unitario, l.unidad_precio, l.cantidad), 0),
+    [lines]
+  );
+  const count = lines.length;
+
+  const value = { lines, addItem, updateQuantity, removeItem, clear, subtotal, count, isOpen, setIsOpen };
+
+  return <CartContext.Provider value={value}>{children}</CartContext.Provider>;
+}
+
+// Small inline SVG (bag), matching SocialIcons' stroke-based style rather
+// than an emoji. Badge shows the distinct line count.
+function CartIcon() {
+  const cart = useContext(CartContext);
+  if (!cart) return null;
+  return (
+    <button
+      type="button"
+      onClick={() => cart.setIsOpen(true)}
+      aria-label="Ver carrito"
+      className="relative hover:text-taupe transition-colors"
+    >
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-5 h-5">
+        <path
+          d="M6 7h15l-1.5 10a2 2 0 0 1-2 1.7H9.3a2 2 0 0 1-2-1.7L5 3H2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+        <circle cx="9.5" cy="21" r="1" />
+        <circle cx="18" cy="21" r="1" />
+      </svg>
+      {cart.count > 0 && (
+        <span className="absolute -top-2 -right-2 min-w-[1rem] h-4 px-1 rounded-full bg-cafe text-crema text-[10px] font-ui font-bold flex items-center justify-center">
+          {cart.count}
+        </span>
+      )}
+    </button>
+  );
 }
 
 function SocialIcons({ tamano }) {
@@ -84,6 +243,7 @@ function TopBar() {
             🔍 Buscar
           </a>
           <SocialIcons tamano="sm" />
+          {USE_API && <CartIcon />}
         </div>
       </div>
     </div>
@@ -149,6 +309,7 @@ function Header() {
           >
             <span>📞</span> {CONTENT.footerTelefono}
           </a>
+          {USE_API && <CartIcon />}
           <button
             className="md:hidden text-cafe text-2xl leading-none"
             aria-label="Abrir menú"
@@ -206,6 +367,8 @@ function Header() {
           {CONTENT.footerTelefono}
         </a>
 
+        {USE_API && <CartIcon />}
+
         <button
           className="md:hidden text-cafe text-2xl leading-none"
           aria-label="Abrir menú"
@@ -256,6 +419,7 @@ function Hero() {
           </h1>
           <p className="font-editorial italic text-xl text-taupe">{CONTENT.heroSubtitulo}</p>
           <p className="text-cafe/80 font-ui text-lg">{CONTENT.hero}</p>
+          <p className="text-sm text-taupe">Compra en línea, recoge en tienda — sin envíos.</p>
           <div className="flex flex-wrap gap-3 pt-2">
             <a
               href="#catalogo"
@@ -402,8 +566,7 @@ function estaAgotado(producto) {
   return (producto.stock || 0) <= 0;
 }
 
-function ColorSwatches({ colores }) {
-  const [seleccionado, setSeleccionado] = useState(null);
+function ColorSwatches({ colores, seleccionado, onSeleccionar }) {
   const [hover, setHover] = useState(null);
 
   // El texto sigue al color en hover; si no hay hover, cae al seleccionado.
@@ -427,7 +590,7 @@ function ColorSwatches({ colores }) {
                 disabled={agotado}
                 onFocus={() => setHover(c.color_id)}
                 onBlur={() => setHover(null)}
-                onClick={() => setSeleccionado(c.color_id)}
+                onClick={() => onSeleccionar && onSeleccionar(c.color_id)}
                 className={
                   "relative w-6 h-6 rounded-full border transition-shadow " +
                   (agotado
@@ -455,9 +618,208 @@ function ColorSwatches({ colores }) {
   );
 }
 
+// Simple fixed-position overlay modal, matching the site's existing
+// visual language (rounded-2xl, border-arena, font-editorial/font-ui,
+// btn-madera) — no prior modal pattern existed in this codebase to reuse.
+// Generalized from single-product props to `{items, onClose}`: `items` is
+// a snapshot of cart lines (see CartDrawer), shown as a compact read-only
+// summary above the existing name/email/phone form. POSTs the multi-item
+// body to /api/checkout/create and clears the cart on success, before the
+// redirect, so a back-button visit after payment doesn't show a stale cart.
+function CheckoutModal({ items, onClose }) {
+  const cart = useContext(CartContext);
+  const [customerName, setCustomerName] = useState("");
+  const [customerEmail, setCustomerEmail] = useState("");
+  const [customerPhone, setCustomerPhone] = useState("");
+  const [enviando, setEnviando] = useState(false);
+  const [error, setError] = useState("");
+
+  const total = useMemo(
+    () => items.reduce((sum, it) => sum + computeSubtotal(it.precio_unitario, it.unidad_precio, it.cantidad), 0),
+    [items]
+  );
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    setError("");
+    setEnviando(true);
+    fetch(`${API_BASE}/api/checkout/create`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        items: items.map((it) => ({
+          product_id: it.product_id,
+          product_color_id: it.product_color_id,
+          cantidad: it.cantidad,
+        })),
+        customer_name: customerName,
+        customer_email: customerEmail,
+        customer_phone: customerPhone || null,
+      }),
+    })
+      .then((res) =>
+        res.json().then((data) => {
+          if (!res.ok) throw new Error(data.error || "No se pudo iniciar el pago");
+          return data;
+        })
+      )
+      .then((data) => {
+        if (cart) cart.clear();
+        window.location.href = data.checkout_url;
+      })
+      .catch((err) => {
+        setError(err.message);
+        setEnviando(false);
+      });
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center px-4" onClick={onClose}>
+      <div
+        className="bg-white rounded-2xl border border-arena max-w-sm w-full p-6"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="font-editorial text-lg font-semibold text-cafe">Finalizar compra</h3>
+          <button
+            type="button"
+            aria-label="Cerrar"
+            onClick={onClose}
+            className="text-cafe/50 hover:text-cafe text-xl leading-none"
+          >
+            ✕
+          </button>
+        </div>
+        <div className="mb-4 flex flex-col gap-1.5 max-h-36 overflow-y-auto border-b border-arena pb-3">
+          {items.map((it) => (
+            <div
+              key={it.key || `${it.product_id}:${it.product_color_id}`}
+              className="flex items-center justify-between gap-3 text-sm font-ui text-cafe/70"
+            >
+              <span className="truncate">
+                {it.nombre}
+                {it.color_nombre ? ` — ${it.color_nombre}` : ""} · {it.cantidad}
+                {it.unidad_precio === "gramos" ? " g" : ""}
+              </span>
+              <span className="shrink-0">${computeSubtotal(it.precio_unitario, it.unidad_precio, it.cantidad).toFixed(2)}</span>
+            </div>
+          ))}
+          <div className="flex items-center justify-between text-sm font-ui font-semibold text-cafe pt-1">
+            <span>Total</span>
+            <span>${total.toFixed(2)} MXN</span>
+          </div>
+        </div>
+        <form onSubmit={handleSubmit} className="flex flex-col gap-3">
+          <input
+            className="border border-arena rounded-lg px-3 py-2 font-ui text-cafe focus:outline-none focus:ring-2 focus:ring-taupe"
+            placeholder="Nombre completo"
+            value={customerName}
+            onChange={(e) => setCustomerName(e.target.value)}
+            required
+          />
+          <input
+            type="email"
+            className="border border-arena rounded-lg px-3 py-2 font-ui text-cafe focus:outline-none focus:ring-2 focus:ring-taupe"
+            placeholder="Correo electrónico"
+            value={customerEmail}
+            onChange={(e) => setCustomerEmail(e.target.value)}
+            required
+          />
+          <input
+            className="border border-arena rounded-lg px-3 py-2 font-ui text-cafe focus:outline-none focus:ring-2 focus:ring-taupe"
+            placeholder="Teléfono (opcional)"
+            value={customerPhone}
+            onChange={(e) => setCustomerPhone(e.target.value)}
+          />
+          {error && <p className="text-sm font-ui text-terracota-700">{error}</p>}
+          <button
+            type="submit"
+            disabled={enviando}
+            className="btn-madera text-crema font-editorial font-semibold px-6 py-3 rounded-lg transition-colors disabled:opacity-60"
+          >
+            {enviando ? "Redirigiendo…" : "Continuar al pago"}
+          </button>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+// Quantity stepper + "Agregar al carrito" — step/min/max/default all
+// branch on unidad_precio (grams vs. whole pieces), matching the plan's
+// Section 3. `maxStock` is the selected color's stock, or the product's
+// own stock when it has no color variants.
+function BuySection({ producto, colorSeleccionado, maxStock }) {
+  const cart = useContext(CartContext);
+  const esGramos = producto.unidad_precio === "gramos";
+  const step = esGramos ? 100 : 1;
+  const maxClamped = esGramos ? Math.floor(maxStock / 100) * 100 : maxStock;
+  const [cantidad, setCantidad] = useState(step);
+  const [agregado, setAgregado] = useState(false);
+
+  // Reset quantity to the default step whenever the relevant stock ceiling
+  // changes (e.g. the customer picks a different color).
+  useEffect(() => {
+    setCantidad(Math.min(step, maxClamped) || step);
+  }, [maxClamped]);
+
+  if (maxClamped <= 0) return null;
+
+  const ajustar = (delta) => {
+    setCantidad((c) => Math.max(step, Math.min(maxClamped, c + delta)));
+  };
+
+  const agregarAlCarrito = () => {
+    if (!cart) return;
+    cart.addItem(producto, colorSeleccionado, cantidad);
+    setAgregado(true);
+    setTimeout(() => setAgregado(false), 1500);
+  };
+
+  return (
+    <div className="mt-3 flex flex-col gap-2">
+      <div className="flex items-center gap-2">
+        <button
+          type="button"
+          onClick={() => ajustar(-step)}
+          disabled={cantidad <= step}
+          className="w-8 h-8 rounded-full border border-arena text-cafe font-ui font-bold disabled:opacity-40"
+        >
+          −
+        </button>
+        <span className="font-ui text-sm text-cafe w-16 text-center">
+          {cantidad}
+          {esGramos ? " g" : ""}
+        </span>
+        <button
+          type="button"
+          onClick={() => ajustar(step)}
+          disabled={cantidad >= maxClamped}
+          className="w-8 h-8 rounded-full border border-arena text-cafe font-ui font-bold disabled:opacity-40"
+        >
+          +
+        </button>
+      </div>
+      <button
+        type="button"
+        onClick={agregarAlCarrito}
+        className="btn-madera text-crema font-editorial font-semibold px-4 py-2 rounded-lg transition-colors text-sm"
+      >
+        {agregado ? "Agregado ✓" : "Agregar al carrito"}
+      </button>
+    </div>
+  );
+}
+
 function ProductCard({ producto }) {
   const conStockYColores = USE_API && Array.isArray(producto.colores);
   const agotado = conStockYColores && estaAgotado(producto);
+  const tieneColores = conStockYColores && producto.colores.length > 0;
+  const [colorSeleccionado, setColorSeleccionado] = useState(null);
+
+  const maxStock = tieneColores
+    ? (colorSeleccionado ? colorSeleccionado.stock : 0)
+    : (producto.stock || 0);
 
   return (
     <article className="bg-white rounded-2xl border border-arena overflow-hidden flex flex-col hover:shadow-lg hover:-translate-y-0.5 transition-all">
@@ -485,14 +847,221 @@ function ProductCard({ producto }) {
         {producto.descripcion && (
           <p className="text-sm font-ui text-cafe/60 mt-1 flex-1">{producto.descripcion}</p>
         )}
-        {conStockYColores && producto.colores.length > 0 && (
-          <ColorSwatches colores={producto.colores} />
+        {tieneColores && (
+          <ColorSwatches
+            colores={producto.colores}
+            seleccionado={colorSeleccionado ? colorSeleccionado.color_id : null}
+            onSeleccionar={(colorId) =>
+              setColorSeleccionado(producto.colores.find((c) => c.color_id === colorId) || null)
+            }
+          />
         )}
         <p className="mt-3 font-editorial text-lg font-semibold text-cafe">
           {formatPrecio(producto)}
         </p>
+        {conStockYColores && (!tieneColores || colorSeleccionado) && (
+          <BuySection producto={producto} colorSeleccionado={colorSeleccionado} maxStock={maxStock} />
+        )}
       </div>
     </article>
+  );
+}
+
+// Right-side slide-in panel, visual language borrowed directly from
+// CheckoutModal (same overlay/backdrop-click-to-close idiom, font-editorial/
+// font-ui/btn-madera/border-arena/rounded-2xl classes). Always mounted (not
+// conditionally, unlike CheckoutModal) so the translate-x transform can
+// actually animate open/closed instead of popping in.
+//
+// Whenever the drawer opens, re-fetches GET {API_BASE}/api/products and
+// clamps/warns any line whose quantity now exceeds current stock — the
+// live stock check; the cart itself never persists a stock ceiling.
+function CartDrawer() {
+  const cart = useContext(CartContext);
+  const [checkoutAbierto, setCheckoutAbierto] = useState(false);
+  // Live stock ceiling for every line currently in the cart (not just the
+  // ones that were over-limit at fetch time) — the stepper's "+" needs the
+  // real current max for every line, not only the ones flagged with a
+  // warning, or it could step a line past freshly-depleted stock that
+  // still happened to be within its *old* ceiling.
+  const [lineStock, setLineStock] = useState({});
+
+  useEffect(() => {
+    if (!cart || !cart.isOpen) return;
+    fetch(`${API_BASE}/api/products`)
+      .then((res) => (res.ok ? res.json() : Promise.reject()))
+      .then((productos) => {
+        const stock = {};
+        cart.lines.forEach((line) => {
+          const producto = productos.find((p) => p.id === line.product_id);
+          if (!producto) {
+            stock[line.key] = { max: 0, message: "Este producto ya no está disponible" };
+            return;
+          }
+          let stockActual;
+          if (line.product_color_id != null) {
+            const color = (producto.colores || []).find((c) => c.product_color_id === line.product_color_id);
+            stockActual = color ? color.stock : 0;
+          } else {
+            stockActual = producto.stock || 0;
+          }
+          const maxClamped = clampStock(line.unidad_precio, stockActual);
+          const sobreLimite = line.cantidad > maxClamped;
+          stock[line.key] = {
+            max: maxClamped,
+            message: sobreLimite
+              ? maxClamped > 0
+                ? `Solo quedan ${maxClamped}${line.unidad_precio === "gramos" ? " g" : ""} disponibles — cantidad ajustada`
+                : "Sin existencias — elimínalo del carrito"
+              : null,
+          };
+          if (sobreLimite) cart.updateQuantity(line.key, maxClamped);
+        });
+        setLineStock(stock);
+      })
+      .catch(() => {});
+    // Re-run every time the drawer transitions to open, not on every lines
+    // change — re-checking stock on every quantity tweak would be wasteful
+    // and would fight the very clamp this effect just applied.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cart && cart.isOpen]);
+
+  if (!cart) return null;
+
+  const sinExistencias = Object.values(lineStock).some((info) => info.max <= 0);
+
+  return (
+    <React.Fragment>
+      <div
+        className={
+          "fixed inset-0 z-40 bg-black/40 transition-opacity " +
+          (cart.isOpen ? "opacity-100" : "opacity-0 pointer-events-none")
+        }
+        onClick={() => cart.setIsOpen(false)}
+      />
+      <div
+        className={
+          "fixed inset-y-0 right-0 z-50 w-full max-w-sm bg-white border-l border-arena flex flex-col transform transition-transform " +
+          (cart.isOpen ? "translate-x-0" : "translate-x-full")
+        }
+      >
+        <div className="flex items-center justify-between px-5 py-4 border-b border-arena">
+          <h3 className="font-editorial text-lg font-semibold text-cafe">Tu carrito</h3>
+          <button
+            type="button"
+            aria-label="Cerrar"
+            onClick={() => cart.setIsOpen(false)}
+            className="text-cafe/50 hover:text-cafe text-xl leading-none"
+          >
+            ✕
+          </button>
+        </div>
+
+        {cart.lines.length === 0 ? (
+          <div className="flex-1 flex flex-col items-center justify-center gap-3 px-6 text-center">
+            <p className="font-ui text-cafe/60">Tu carrito está vacío.</p>
+            <a
+              href="#catalogo"
+              onClick={() => cart.setIsOpen(false)}
+              className="btn-madera inline-block text-crema font-editorial font-semibold px-5 py-2 rounded-lg transition-colors text-sm"
+            >
+              Ir al catálogo
+            </a>
+          </div>
+        ) : (
+          <React.Fragment>
+            <div className="flex-1 overflow-y-auto px-5 py-4 flex flex-col gap-4">
+              {cart.lines.map((line) => {
+                const step = stepFor(line.unidad_precio);
+                const info = lineStock[line.key];
+                const maxClamped = info ? info.max : Infinity;
+                return (
+                  <div key={line.key} className="flex gap-3 border-b border-arena pb-4 last:border-0">
+                    <img
+                      src={line.imagen}
+                      alt={line.nombre}
+                      className="w-16 h-16 rounded-lg object-cover bg-crema shrink-0"
+                    />
+                    <div className="flex-1 flex flex-col gap-1 min-w-0">
+                      <p className="font-ui text-sm font-semibold text-cafe truncate">{line.nombre}</p>
+                      {line.color_nombre && (
+                        <span className="flex items-center gap-1.5 text-xs font-ui text-cafe/60">
+                          <span
+                            className="w-3 h-3 rounded-full border border-arena inline-block shrink-0"
+                            style={{ backgroundColor: line.color_hex || "#cccccc" }}
+                          />
+                          {line.color_nombre}
+                        </span>
+                      )}
+                      {info && info.message && (
+                        <p className="text-xs font-ui text-terracota-700">{info.message}</p>
+                      )}
+                      <div className="flex items-center gap-2 mt-1">
+                        <button
+                          type="button"
+                          onClick={() => cart.updateQuantity(line.key, Math.max(step, line.cantidad - step))}
+                          disabled={line.cantidad <= step}
+                          className="w-6 h-6 rounded-full border border-arena text-cafe font-ui font-bold text-xs disabled:opacity-40"
+                        >
+                          −
+                        </button>
+                        <span className="font-ui text-xs text-cafe w-12 text-center">
+                          {line.cantidad}
+                          {line.unidad_precio === "gramos" ? " g" : ""}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            cart.updateQuantity(line.key, Math.min(maxClamped, line.cantidad + step))
+                          }
+                          disabled={line.cantidad >= maxClamped}
+                          className="w-6 h-6 rounded-full border border-arena text-cafe font-ui font-bold text-xs disabled:opacity-40"
+                        >
+                          +
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => cart.removeItem(line.key)}
+                          className="ml-auto text-xs font-ui text-terracota-700 hover:underline"
+                        >
+                          Quitar
+                        </button>
+                      </div>
+                    </div>
+                    <p className="font-ui text-sm font-semibold text-cafe shrink-0">
+                      ${computeSubtotal(line.precio_unitario, line.unidad_precio, line.cantidad).toFixed(2)}
+                    </p>
+                  </div>
+                );
+              })}
+            </div>
+            <div className="px-5 py-4 border-t border-arena flex flex-col gap-3">
+              <div className="flex items-center justify-between font-ui font-semibold text-cafe">
+                <span>Total</span>
+                <span>${cart.subtotal.toFixed(2)} MXN</span>
+              </div>
+              <p className="text-xs text-cafe/60">Este pedido se recoge en tienda — no se realizan envíos.</p>
+              <button
+                type="button"
+                onClick={() => cart.clear()}
+                className="text-sm font-ui text-cafe/60 hover:underline text-left"
+              >
+                Vaciar carrito
+              </button>
+              <button
+                type="button"
+                disabled={sinExistencias}
+                onClick={() => setCheckoutAbierto(true)}
+                className="btn-madera text-crema font-editorial font-semibold px-6 py-3 rounded-lg transition-colors disabled:opacity-60"
+              >
+                Proceder al pago
+              </button>
+            </div>
+          </React.Fragment>
+        )}
+      </div>
+      {checkoutAbierto && <CheckoutModal items={cart.lines} onClose={() => setCheckoutAbierto(false)} />}
+    </React.Fragment>
   );
 }
 
@@ -745,6 +1314,50 @@ function Footer() {
   );
 }
 
+// Reads ?order=<id>&status=success|cancelled from location.search once on
+// mount and renders a small dismissible banner reflecting the Stripe
+// Checkout redirect outcome. No router in this app — this is a one-off
+// conditional render, not a new page/route.
+function CheckoutRedirectBanner() {
+  const [estado, setEstado] = useState(() => {
+    const params = new URLSearchParams(window.location.search);
+    const status = params.get("status");
+    return status === "success" || status === "cancelled" ? status : null;
+  });
+
+  if (!estado) return null;
+
+  const esExito = estado === "success";
+  return (
+    <div
+      className={
+        "px-4 py-3 text-center text-sm font-ui border-b " +
+        (esExito ? "bg-salvia/20 text-cafe border-salvia/40" : "bg-rosa/20 text-cafe border-rosa/40")
+      }
+    >
+      <span className="mr-2">
+        {esExito ? (
+          <>
+            ¡Gracias por tu compra! Te esperamos para que la recojas en tienda.{" "}
+            <span className="text-xs">
+              {CONTENT.footerDireccion} · {CONTENT.footerHorario}
+            </span>
+          </>
+        ) : (
+          "Pago cancelado — puedes intentarlo de nuevo cuando quieras."
+        )}
+      </span>
+      <button
+        type="button"
+        onClick={() => setEstado(null)}
+        className="font-semibold underline underline-offset-2"
+      >
+        Cerrar
+      </button>
+    </div>
+  );
+}
+
 function App() {
   const [categoriaActiva, setCategoriaActiva] = useState("Todos");
   const [, forzarRerender] = useState(0);
@@ -763,16 +1376,20 @@ function App() {
   }, []);
 
   return (
-    <React.Fragment>
-      <TopBar />
-      <Header />
-      <Hero />
-      <CategoryTiles categoriaActiva={categoriaActiva} onSelectCategoria={setCategoriaActiva} />
-      <NosotrosYTestimonios />
-      <Catalogo categoriaActiva={categoriaActiva} onSelectCategoria={setCategoriaActiva} />
-      <BlogComingSoon />
-      <Footer />
-    </React.Fragment>
+    <CartProvider>
+      <React.Fragment>
+        {USE_API && <CheckoutRedirectBanner />}
+        <TopBar />
+        <Header />
+        <Hero />
+        <CategoryTiles categoriaActiva={categoriaActiva} onSelectCategoria={setCategoriaActiva} />
+        <NosotrosYTestimonios />
+        <Catalogo categoriaActiva={categoriaActiva} onSelectCategoria={setCategoriaActiva} />
+        <BlogComingSoon />
+        <Footer />
+        {USE_API && <CartDrawer />}
+      </React.Fragment>
+    </CartProvider>
   );
 }
 
