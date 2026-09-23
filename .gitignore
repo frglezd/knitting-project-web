@@ -13,3 +13,5 @@ assets/images/logo.png
 *backup*sql
 /backup/*
 assets/proposals/**
+tests/
+assets/plans/
