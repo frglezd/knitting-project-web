@@ -1102,7 +1102,13 @@ function AdminApp() {
 
   const handleDelete = (producto) => {
     if (!window.confirm(`¿Eliminar "${producto.nombre}"?`)) return;
-    api(`/api/products/${producto.id}`, { method: "DELETE" }).then(() => cargarProductos());
+    setFormError("");
+    api(`/api/products/${producto.id}`, { method: "DELETE" })
+      .then((res) => {
+        if (!res.ok) return parseJsonError(res, "No se pudo eliminar");
+        cargarProductos();
+      })
+      .catch((err) => setFormError(err.message));
   };
 
   const handleLogout = () => {
