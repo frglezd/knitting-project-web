@@ -1143,9 +1143,9 @@ function Catalogo({ categoriaActiva, onSelectCategoria }) {
       <div className="text-center mb-10">
         <h2 className="font-editorial text-3xl font-semibold text-cafe">Nuestro catálogo</h2>
         <p className="text-cafe/60 font-ui mt-2">
-          Las madejas se venden por unidad o por cada 100&nbsp;g, según la
-          referencia. El catálogo se irá ampliando con nuevos acrílicos y
-          accesorios.
+          Compra en línea y recoge tu pedido en tienda. Las madejas se venden
+          por unidad o por cada 100&nbsp;g, según la referencia. El catálogo
+          se irá ampliando con nuevos acrílicos y accesorios.
         </p>
       </div>
 
@@ -1274,6 +1274,120 @@ function NosotrosYTestimonios() {
   );
 }
 
+function IconoTienda() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-6 h-6">
+      <path d="M3 9l1-5h16l1 5" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M3 9a2 2 0 0 0 4 0 2 2 0 0 0 4 0 2 2 0 0 0 4 0 2 2 0 0 0 4 0" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M4 9v10a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1V9" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M9 20v-5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v5" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function IconoRecogeEnTienda() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-6 h-6">
+      <path d="M3 8l9-4 9 4-9 4-9-4Z" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M3 8v8l9 4 9-4V8" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M12 12v8" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M9.3 15.3l1.8 1.8 3.6-3.6" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function IconoMercadoLibre() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-6 h-6">
+      <circle cx="12" cy="12" r="9" />
+      <path d="M3 12h18" strokeLinecap="round" />
+      <path d="M12 3c2.5 2.5 2.5 15.5 0 18" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M12 3c-2.5 2.5-2.5 15.5 0 18" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+const ICONOS_OPCIONES_COMPRA = {
+  tienda: IconoTienda,
+  recoge: IconoRecogeEnTienda,
+  mercadolibre: IconoMercadoLibre,
+};
+
+const OPCIONES_COMPRA = [
+  {
+    id: "tienda",
+    titulo: "Compra en tienda",
+    descripcion:
+      "Visítanos en nuestra tienda física y elige tus materiales en persona, con la asesoría de nuestro equipo.",
+    icono: "tienda",
+    disponible: true,
+  },
+  {
+    id: "recoge",
+    titulo: "Compra en línea, recoge en tienda",
+    descripcion:
+      "Haz tu pedido en línea y recógelo en tienda, sin esperar envíos ni pagar costos de entrega.",
+    icono: "recoge",
+    disponible: true,
+    enlace: "#catalogo",
+  },
+  {
+    id: "mercadolibre",
+    titulo: "Compra en línea por MercadoLibre",
+    descripcion: "Muy pronto podrás comprar nuestros productos directamente desde MercadoLibre.",
+    icono: "mercadolibre",
+    disponible: false,
+  },
+];
+
+function OpcionesDeCompra() {
+  const coloresIcono = ["bg-rosa", "bg-salvia"];
+
+  return (
+    <section className="max-w-6xl mx-auto px-4 sm:px-6 py-16">
+      <div className="text-center mb-10">
+        <h2 className="font-editorial text-3xl font-semibold text-cafe mb-3">¿Cómo prefieres comprar?</h2>
+        <p className="text-cafe/70 font-ui max-w-2xl mx-auto">
+          Elige la forma que más te convenga para llevarte tus materiales de tejido.
+        </p>
+      </div>
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+        {OPCIONES_COMPRA.map((opcion, i) => {
+          const Icono = ICONOS_OPCIONES_COMPRA[opcion.icono];
+          const Envoltura = opcion.enlace ? "a" : "div";
+          return (
+            <Envoltura
+              key={opcion.id}
+              {...(opcion.enlace ? { href: opcion.enlace } : {})}
+              className={
+                "relative bg-white rounded-2xl border border-arena p-6 flex flex-col items-center text-center gap-3 " +
+                (opcion.disponible ? "" : "opacity-70") +
+                (opcion.enlace ? " hover:shadow-lg hover:-translate-y-0.5 transition-all" : "")
+              }
+            >
+              {!opcion.disponible && (
+                <span className="absolute top-4 right-4 bg-arena text-cafe/70 text-xs font-ui font-semibold px-2 py-0.5 rounded-full">
+                  Próximamente
+                </span>
+              )}
+              <span
+                className={
+                  "w-12 h-12 rounded-full flex items-center justify-center text-crema shrink-0 " +
+                  (opcion.disponible ? coloresIcono[i % coloresIcono.length] : "bg-cafe/30")
+                }
+              >
+                <Icono />
+              </span>
+              <h3 className="font-editorial text-lg font-semibold text-cafe">{opcion.titulo}</h3>
+              <p className="text-cafe/70 font-ui text-sm leading-relaxed">{opcion.descripcion}</p>
+            </Envoltura>
+          );
+        })}
+      </div>
+    </section>
+  );
+}
+
 function BlogComingSoon() {
   return (
     <section id="blog" className="max-w-3xl mx-auto px-4 sm:px-6 py-16 text-center scroll-mt-16">
@@ -1384,6 +1498,7 @@ function App() {
         <Hero />
         <CategoryTiles categoriaActiva={categoriaActiva} onSelectCategoria={setCategoriaActiva} />
         <NosotrosYTestimonios />
+        <OpcionesDeCompra />
         <Catalogo categoriaActiva={categoriaActiva} onSelectCategoria={setCategoriaActiva} />
         <BlogComingSoon />
         <Footer />
