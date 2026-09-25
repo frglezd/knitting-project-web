@@ -603,6 +603,7 @@ const CONTENT_TEXTAREA_FIELDS = [
   { key: "nosotros", label: 'Texto de "Sobre nosotros"' },
   { key: "footerTagline", label: "Frase corta del pie de página" },
   { key: "blogProximamente", label: "Texto del placeholder del blog" },
+  { key: "catalogoNotaAgotado", label: "Catálogo: nota de producto agotado" },
 ];
 
 const CONTENT_IMAGE_FIELDS = [

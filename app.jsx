@@ -550,12 +550,11 @@ function CategoryFilter({ categorias, categoriaActiva, onSelectCategoria }) {
   );
 }
 
-// Apagado hasta que el stock real esté cargado: todo producto existente
-// arrancó en stock=0 al agregar la columna (nadie ha tenido oportunidad de
-// capturar cantidades reales todavía), así que mostrar "Agotado" ahora haría
-// ver todo el catálogo como sin existencias. Cambiar a `true` es el único
-// paso necesario una vez que el stock real esté cargado en /admin.
-const SHOW_AGOTADO_BADGE = false;
+// Activado 2026-09-25 por decisión explícita del dueño de la tienda, aun
+// con la mayoría del catálogo todavía en stock=0 (16/89 productos con
+// existencias reales al momento del cambio) — la mayoría del catálogo se
+// mostrará "Agotado" hasta que se capturen más cantidades en /admin.
+const SHOW_AGOTADO_BADGE = true;
 
 // Sólo tiene sentido en modo API (USE_API): el catálogo demo/CSV no trae
 // `stock`/`colores`, así que el llamador nunca debe invocar esto en ese modo.
@@ -1146,6 +1145,7 @@ function Catalogo({ categoriaActiva, onSelectCategoria }) {
           Compra en línea y recoge tu pedido en tienda. Las madejas se venden
           por unidad o por cada 100&nbsp;g, según la referencia. El catálogo
           se irá ampliando con nuevos acrílicos y accesorios.
+          {SHOW_AGOTADO_BADGE && CONTENT.catalogoNotaAgotado && ` ${CONTENT.catalogoNotaAgotado}`}
         </p>
       </div>
 

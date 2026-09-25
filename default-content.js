@@ -24,6 +24,7 @@ window.DEFAULT_CONTENT = {
     { nombre: "Clienta desde hace años", texto: "Compro aquí desde hace años. La calidad de los hilos es excelente y los precios muy justos." },
   ],
   blogProximamente: "Muy pronto compartiremos tutoriales, patrones e inspiración aquí. ¡Vuelve pronto!",
+  catalogoNotaAgotado: "Si un producto aparece como Agotado, es posible que sí lo tengamos en tienda — pregúntanos.",
   nosotros:
     "Punto y Lana nació como una pequeña mercería de barrio y hoy " +
     "combinamos la tienda física con la venta online, sin perder el " +

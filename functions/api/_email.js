@@ -167,7 +167,7 @@ export async function sendOrderConfirmationEmails(env, { order, items }) {
   const results = await Promise.allSettled([
     sendEmail(env, {
       to: order.customer_email,
-      subject: `Confirmación de tu pedido #${order.id} — Punto y Lana`,
+      subject: `Confirmación de tu pedido #${order.id} — La Casita del Estambre`,
       html: buildCustomerEmailHtml({ order, items, pickup }),
     }),
     sendEmail(env, {

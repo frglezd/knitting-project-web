@@ -1,5 +1,8 @@
 {
+  "scripts": {
+    "test": "node --test"
+  },
   "devDependencies": {
-    "wrangler": "^4.128.0"
+    "wrangler": "^4.141.0"
   }
 }
