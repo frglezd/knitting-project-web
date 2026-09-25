@@ -113,7 +113,7 @@ function parseId(params) {
 // `products` (e.g. colores, referenced via product_colores.color_id),
 // an object `{ table, column }` naming the table/column to check instead.
 // Either form blocks deleting a value that's still in use.
-export function createLookupItemHandlers(table, usage) {
+export function createLookupItemHandlers(table, usage, extraColumn) {
   const usageTable = typeof usage === "string" ? "products" : usage.table;
   const usageColumn = typeof usage === "string" ? usage : usage.column;
   async function onRequestPut({ request, env, params }) {
@@ -141,11 +141,20 @@ export function createLookupItemHandlers(table, usage) {
       .first();
     if (otro) return json({ error: "Ya existe un valor con ese nombre" }, 409);
 
-    await env.DB.prepare(`UPDATE ${table} SET nombre = ?, nombre_normalizado = ? WHERE id = ?`)
-      .bind(nombre, normalizado, id)
-      .run();
+    let extraValue;
+    if (extraColumn) {
+      const raw = body?.[extraColumn.name];
+      const valido = typeof raw === "string" ? extraColumn.validate(raw) : null;
+      extraValue = valido ?? extraColumn.default;
+    }
 
-    return json({ ok: true, id, nombre });
+    const sql = extraColumn
+      ? `UPDATE ${table} SET nombre = ?, nombre_normalizado = ?, ${extraColumn.name} = ? WHERE id = ?`
+      : `UPDATE ${table} SET nombre = ?, nombre_normalizado = ? WHERE id = ?`;
+    const binds = extraColumn ? [nombre, normalizado, extraValue, id] : [nombre, normalizado, id];
+    await env.DB.prepare(sql).bind(...binds).run();
+
+    return json({ ok: true, id, nombre, ...(extraColumn ? { [extraColumn.name]: extraValue } : {}) });
   }
 
   async function onRequestDelete({ request, env, params }) {

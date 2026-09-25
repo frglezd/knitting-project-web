@@ -229,6 +229,7 @@ function LookupSelect({ label, options, value, onChange, onCreate, extraCampo })
 // LookupSelects don't pass `extraCampo` and keep their one-argument
 // `onCreate(nombre)` contract.
 const COLOR_HEX_CAMPO = {
+  key: "hex",
   valorInicial: "#cccccc",
   render: (valor, setValor) => (
     <input
@@ -238,6 +239,13 @@ const COLOR_HEX_CAMPO = {
       onChange={(e) => setValor(e.target.value)}
       title="Color"
       className="w-10 h-10 shrink-0 border border-stone-300 rounded-lg p-0.5"
+    />
+  ),
+  renderView: (valor) => (
+    <span
+      className="w-6 h-6 rounded-full border border-stone-300 shrink-0"
+      style={{ backgroundColor: valor || "#cccccc" }}
+      title={valor}
     />
   ),
 };
@@ -386,7 +394,7 @@ function ProductForm({
         rows={2}
       />
       <div className="sm:col-span-2 flex flex-col gap-2 border border-stone-200 rounded-lg p-3">
-        <h3 className="text-sm font-semibold text-stone-600">Colores disponibles</h3>
+        <h3 className="text-sm font-semibold text-stone-600">Colores disponibles para producto</h3>
         {(values.colores || []).map((c, indice) => (
           <div key={indice} className="flex flex-col sm:flex-row gap-2 sm:items-start">
             <span
@@ -503,26 +511,30 @@ function parseJsonError(res, fallback) {
   );
 }
 
-function LookupManager({ title, items, onRename, onDelete }) {
+function LookupManager({ title, items, onRename, onDelete, extraCampo }) {
   const [editId, setEditId] = useState(null);
   const [editValue, setEditValue] = useState("");
+  const [editExtra, setEditExtra] = useState(extraCampo ? extraCampo.valorInicial : undefined);
   const [error, setError] = useState("");
 
   const empezar = (item) => {
     setEditId(item.id);
     setEditValue(item.nombre);
+    setEditExtra(extraCampo ? item[extraCampo.key] : undefined);
     setError("");
   };
 
   const cancelar = () => {
     setEditId(null);
     setEditValue("");
+    setEditExtra(extraCampo ? extraCampo.valorInicial : undefined);
     setError("");
   };
 
   const guardar = (id) => {
     setError("");
-    onRename(id, editValue).then(cancelar).catch((err) => setError(err.message));
+    const promesa = extraCampo ? onRename(id, editValue, editExtra) : onRename(id, editValue);
+    promesa.then(cancelar).catch((err) => setError(err.message));
   };
 
   const eliminar = (item) => {
@@ -539,6 +551,7 @@ function LookupManager({ title, items, onRename, onDelete }) {
           <li key={item.id} className="flex items-center gap-2">
             {editId === item.id ? (
               <>
+                {extraCampo && extraCampo.render(editExtra, setEditExtra)}
                 <input
                   className="border border-stone-300 rounded-lg px-2 py-1 flex-1 text-sm"
                   value={editValue}
@@ -558,6 +571,7 @@ function LookupManager({ title, items, onRename, onDelete }) {
               </>
             ) : (
               <>
+                {extraCampo && extraCampo.renderView(item[extraCampo.key])}
                 <span className="flex-1 text-sm text-stone-700">{item.nombre}</span>
                 <button
                   type="button"
@@ -1062,6 +1076,21 @@ function AdminApp() {
   const renombrarCategoria = renombrarValorLookup("/api/categorias", setCategorias);
   const eliminarCategoria = eliminarValorLookup("/api/categorias", setCategorias);
 
+  // Colores take a `hex` alongside `nombre` on rename too (mirrors
+  // `crearColor` above), so this isn't built on `renombrarValorLookup`.
+  const renombrarColor = (id, nombre, hex) =>
+    api(`/api/colores/${id}`, { method: "PUT", body: JSON.stringify({ nombre, hex }) })
+      .then((res) => {
+        if (!res.ok) return parseJsonError(res, "No se pudo renombrar");
+        return res.json();
+      })
+      .then((item) => {
+        setColores((prev) => ordenarPorNombre(prev.map((v) => (v.id === id ? item : v))));
+        cargarProductos();
+        return item;
+      });
+  const eliminarColor = eliminarValorLookup("/api/colores", setColores);
+
   const empezarEdicion = (producto) => {
     setEditId(producto.id);
     setFormValues({
@@ -1187,11 +1216,13 @@ function AdminApp() {
         onClick={() => setMostrarGestion((v) => !v)}
         className="mt-4 text-sm font-semibold text-musgo-600 hover:underline"
       >
-        {mostrarGestion ? "Ocultar gestión de fabricantes/categorías" : "Gestionar fabricantes y categorías"}
+        {mostrarGestion
+          ? "Ocultar gestión de fabricantes/categorías/colores"
+          : "Gestionar fabricantes, categorías y colores"}
       </button>
 
       {mostrarGestion && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mt-4">
           <LookupManager
             title="Fabricantes"
             items={fabricantes}
@@ -1203,6 +1234,13 @@ function AdminApp() {
             items={categorias}
             onRename={renombrarCategoria}
             onDelete={eliminarCategoria}
+          />
+          <LookupManager
+            title="Colores"
+            items={colores}
+            onRename={renombrarColor}
+            onDelete={eliminarColor}
+            extraCampo={COLOR_HEX_CAMPO}
           />
         </div>
       )}
